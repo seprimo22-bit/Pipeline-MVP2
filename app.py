@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 app = FastAPI(title="Campbell Cognitive Pipeline")
-
+templates = Jinja2Templates(directory="templates")
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -153,7 +153,7 @@ def run_pipeline(question):
 
 # -------- ROUTES --------
 
-@app.get("/")
+app.get("/")
 def home():
     return {"status": "Campbell Cognitive Pipeline Running"}
 
