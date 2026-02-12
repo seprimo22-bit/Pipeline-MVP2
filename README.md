@@ -1,29 +1,18 @@
-# Campbell Cognitive App Pipeline
-# Backend API (FastAPI) — Render-ready
-# Author: Cognitive Pipeline Prototype
+
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 import re
 import uvicorn
 
-app = FastAPI(title="Campbell Cognitive App Pipeline")
+app = FastAPI(title="Campbell Cognitive Pipeline")
 
-
-# -----------------------------
-# DATA MODEL
-# -----------------------------
 
 class QuestionInput(BaseModel):
     question: str
 
 
-# -----------------------------
-# PIPELINE CORE FUNCTIONS
-# -----------------------------
-
 def paper_zero_layer(text):
-    """Separate facts, assumptions, unknowns."""
     sentences = re.split(r'[.!?]', text)
 
     facts = []
@@ -54,14 +43,8 @@ def paper_zero_layer(text):
 
 
 def orr_core(data):
-    """Observe → Rectify → Review."""
-
     observations = data["facts"]
-
-    # Rectify contradictions simple pass
     rectified = list(set(observations))
-
-    # Review gaps
     gaps = data["unknowns"]
 
     return {
@@ -71,19 +54,13 @@ def orr_core(data):
 
 
 def orns_stabilization(data):
-    """Normalize interpretation."""
-
-    stable_interpretation = {
+    return {
         "normalized_observations": data["observations"],
         "uncertainty_flags": data["gaps"]
     }
 
-    return stable_interpretation
-
 
 def axiom_extraction(data):
-    """Extract recurring constraints."""
-
     axioms = []
 
     for obs in data["normalized_observations"]:
@@ -94,8 +71,6 @@ def axiom_extraction(data):
 
 
 def extended_decision_framework(data):
-    """Risk / ethics / structural evaluation."""
-
     risk_flags = []
     ethical_flags = []
 
@@ -113,16 +88,11 @@ def extended_decision_framework(data):
 
 
 def final_orr_pass(all_data):
-    """Final assumption cleanup."""
-
     verified = list(set(all_data["normalized_observations"]))
-
     return {"verified_interpretation": verified}
 
 
 def output_classification(data):
-    """Final structured classification."""
-
     facts = data["verified_interpretation"]
 
     hypotheses = []
@@ -147,12 +117,7 @@ def output_classification(data):
     }
 
 
-# -----------------------------
-# FULL PIPELINE EXECUTION
-# -----------------------------
-
 def run_pipeline(text):
-
     pz = paper_zero_layer(text)
     orr = orr_core(pz)
     orns = orns_stabilization(orr)
@@ -171,10 +136,6 @@ def run_pipeline(text):
     }
 
 
-# -----------------------------
-# API ENDPOINTS
-# -----------------------------
-
 @app.get("/")
 def home():
     return {"status": "Campbell Cognitive Pipeline Running"}
@@ -182,13 +143,8 @@ def home():
 
 @app.post("/analyze")
 def analyze_question(data: QuestionInput):
-    result = run_pipeline(data.question)
-    return result
+    return run_pipeline(data.question)
 
-
-# -----------------------------
-# LOCAL DEV RUNNER
-# -----------------------------
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=10000)
