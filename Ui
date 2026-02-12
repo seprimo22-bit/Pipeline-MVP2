@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Campbell Pipeline</title>
+</head>
+<body>
+
+<h2>Ask a Question</h2>
+
+<textarea id="q"></textarea>
+<br>
+<button onclick="ask()">Analyze</button>
+
+<pre id="r"></pre>
+
+<script>
+async function ask(){
+ let q=document.getElementById("q").value;
+ let res=await fetch("/analyze",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({question:q})
+ });
+ let data=await res.json();
+ document.getElementById("r").textContent=
+ JSON.stringify(data,null,2);
+}
+</script>
+
+</body>
+</html>
