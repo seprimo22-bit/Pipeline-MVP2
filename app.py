@@ -1,23 +1,49 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import re
+import os
+from openai import OpenAI
 
 app = FastAPI(title="Campbell Cognitive Pipeline")
 
-# -------- INPUT MODEL --------
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class QuestionInput(BaseModel):
     question: str
 
 
-# -------- PAPER ZERO LAYER --------
+# -------- AI FACT RETRIEVAL --------
+
+def get_ai_answer(question):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Provide factual, neutral, concise information."
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ],
+            temperature=0.3
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"AI retrieval error: {str(e)}"
+
+
+# -------- PAPER ZERO --------
 
 def paper_zero_layer(text):
     sentences = re.split(r'[.!?]', text)
 
-    facts = []
-    assumptions = []
-    unknowns = []
+    facts, assumptions, unknowns = [], [], []
 
     for s in sentences:
         s = s.strip()
@@ -26,8 +52,6 @@ def paper_zero_layer(text):
 
         if "maybe" in s.lower() or "probably" in s.lower():
             assumptions.append(s)
-        elif "?" in text:
-            unknowns.append(s)
         else:
             facts.append(s)
 
@@ -49,7 +73,7 @@ def orr_core(data):
     }
 
 
-# -------- ORNS STABILIZATION --------
+# -------- ORNS --------
 
 def orns_stabilization(data):
     return {
@@ -59,17 +83,17 @@ def orns_stabilization(data):
     }
 
 
-# -------- AXIOM EXTRACTION --------
+# -------- AXIOMS --------
 
 def axiom_extraction(data):
     axioms = []
     for item in data["stable_interpretation"]:
-        if len(item.split()) > 3:
+        if len(item.split()) > 4:
             axioms.append(f"Potential principle: {item}")
     return axioms
 
 
-# -------- EXTENDED DECISION FRAMEWORK --------
+# -------- DECISION FRAMEWORK --------
 
 def extended_decision_framework(data):
     return {
@@ -79,7 +103,7 @@ def extended_decision_framework(data):
     }
 
 
-# -------- FINAL ORR PASS --------
+# -------- FINAL PASS --------
 
 def final_orr_pass(data):
     return {
@@ -101,8 +125,11 @@ def output_classification(data):
 
 # -------- FULL PIPELINE --------
 
-def run_pipeline(text):
-    pz = paper_zero_layer(text)
+def run_pipeline(question):
+
+    ai_answer = get_ai_answer(question)
+
+    pz = paper_zero_layer(ai_answer)
     orr = orr_core(pz)
     orns = orns_stabilization(orr)
     axioms = axiom_extraction(orns)
@@ -111,6 +138,8 @@ def run_pipeline(text):
     classified = output_classification(final)
 
     return {
+        "original_question": question,
+        "ai_answer": ai_answer,
         "paper_zero": pz,
         "orr": orr,
         "orns": orns,
@@ -120,12 +149,11 @@ def run_pipeline(text):
     }
 
 
-# -------- API ROUTES --------
+# -------- ROUTES --------
 
 @app.get("/")
 def home():
     return {"status": "Campbell Cognitive Pipeline Running"}
-
 
 @app.post("/analyze")
 def analyze_question(data: QuestionInput):
