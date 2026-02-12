@@ -153,9 +153,39 @@ def run_pipeline(question):
 
 # -------- ROUTES --------
 
-app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
-    return {"status": "Campbell Cognitive Pipeline Running"}
+    return """
+    <html>
+        <head>
+            <title>Campbell Cognitive Pipeline</title>
+        </head>
+        <body>
+            <h2>Ask a Question</h2>
+
+            <textarea id="q" rows="5" cols="60"></textarea><br>
+            <button onclick="ask()">Analyze</button>
+
+            <pre id="r"></pre>
+
+            <script>
+            async function ask(){
+                let q=document.getElementById("q").value;
+
+                let res=await fetch("/analyze",{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({question:q})
+                });
+
+                let data=await res.json();
+                document.getElementById("r").textContent=
+                    JSON.stringify(data,null,2);
+            }
+            </script>
+        </body>
+    </html>
+    """ 
 
 @app.post("/analyze")
 def analyze_question(data: QuestionInput):
