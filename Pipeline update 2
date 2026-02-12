@@ -1,0 +1,67 @@
+from flask import Flask, request, jsonify
+import datetime
+
+app = Flask(__name__)
+
+class HybridPipeline:
+    def __init__(self):
+        self.vectors = {
+            "TimePressure": 0.0,
+            "InfoCompleteness": 0.0,
+            "Reversibility": 0.0,
+            "EntropyRisk": 0.0,
+            "AgencyControl": 0.0,
+            "StakeAsymmetry": 0.0,
+            "ConstraintDensity": 0.0,
+            "Alignment": 0.0
+        }
+    
+    def paper_zero(self, text):
+        text_lower = text.lower()
+        hedge_words = ["maybe", "perhaps", "might", "could", "possibly", "i think"]
+        hedge_count = sum(1 for word in hedge_words if word in text_lower)
+        is_decision = "should i" in text_lower
+        return {
+            "intent": "DECISION" if is_decision else "INQUIRY",
+            "hedge_density": hedge_count,
+            "cleaned": text
+        }
+    
+    def run(self, text):
+        pz = self.paper_zero(text)
+        text_lower = text.lower()
+        
+        if "urgent" in text_lower or "now" in text_lower:
+            self.vectors["TimePressure"] = 7.0
+        if "should i" in text_lower:
+            self.vectors["AgencyControl"] = 5.0
+        if "what" in text_lower or "how" in text_lower:
+            self.vectors["InfoCompleteness"] = 6.0
+        
+        tension = sum(self.vectors.values()) / 8.0
+        
+        return {
+            "timestamp": str(datetime.datetime.now()),
+            "paper_zero": pz,
+            "vectors": self.vectors,
+            "tension_score": round(tension, 2),
+            "classification": "DECISION_READY" if pz["intent"] == "DECISION" else "INFORMATIONAL"
+        }
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    data = request.get_json()
+    if not data or "text" not in data:
+        return jsonify({"error": "Missing 'text' field"}), 400
+    text = data.get("text", "")
+    pipeline = HybridPipeline()
+    return jsonify(pipeline.run(text))
+
+@app.route("/")
+def home():
+    return "Campbell Pipeline API - POST to /analyze"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
+flask
+gunicorn
