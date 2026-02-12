@@ -3,7 +3,9 @@ from pydantic import BaseModel
 import re
 import os
 from openai import OpenAI
-
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 app = FastAPI(title="Campbell Cognitive Pipeline")
 
 # Initialize OpenAI client
