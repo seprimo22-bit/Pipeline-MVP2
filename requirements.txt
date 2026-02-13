@@ -1,5 +1,4 @@
 fastapi
 uvicorn
-pydantic
 openai
-jinja2
+pydantic
