@@ -4,34 +4,45 @@ import re
 import os
 from openai import OpenAI
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi import Request
+
+# -----------------------
+# INITIALIZE APP
+# -----------------------
+
 app = FastAPI(title="Campbell Cognitive Pipeline")
-templates = Jinja2Templates(directory="templates")
-# Initialize OpenAI client
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+# -----------------------
+# INPUT MODEL
+# -----------------------
 
 class QuestionInput(BaseModel):
     question: str
 
 
-# -------- AI FACT RETRIEVAL --------
+# -----------------------
+# AI FACT RETRIEVAL
+# -----------------------
 
 def get_ai_answer(question):
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "Provide factual, neutral, concise information."
+                    "content":
+                    """Give factual, neutral information.
+                    No hype.
+                    Separate facts clearly.
+                    Keep concise."""
                 },
-                {
-                    "role": "user",
-                    "content": question
-                }
+                {"role": "user", "content": question}
             ],
-            temperature=0.3
+            temperature=0.2
         )
 
         return response.choices[0].message.content
@@ -40,153 +51,129 @@ def get_ai_answer(question):
         return f"AI retrieval error: {str(e)}"
 
 
-# -------- PAPER ZERO --------
+# -----------------------
+# PAPER ZERO (FACT FILTER)
+# -----------------------
 
-def paper_zero_layer(text):
+def extract_facts(text):
+
     sentences = re.split(r'[.!?]', text)
-
-    facts, assumptions, unknowns = [], [], []
+    facts = []
 
     for s in sentences:
         s = s.strip()
+
         if not s:
             continue
 
-        if "maybe" in s.lower() or "probably" in s.lower():
-            assumptions.append(s)
-        else:
-            facts.append(s)
+        if any(word in s.lower() for word in
+               ["maybe", "possibly", "might", "guess", "speculative"]):
+            continue
 
-    return {
-        "facts": facts,
-        "assumptions": assumptions,
-        "unknowns": unknowns
-    }
+        facts.append(s)
+
+    return facts
 
 
-# -------- ORR CORE --------
-
-def orr_core(data):
-    cleaned = list(set(data["facts"]))
-    return {
-        "observations": cleaned,
-        "contradictions_removed": True,
-        "bias_checked": True
-    }
-
-
-# -------- ORNS --------
-
-def orns_stabilization(data):
-    return {
-        "stable_interpretation": data["observations"],
-        "ambiguity_checked": True,
-        "emotional_bias_reduced": True
-    }
-
-
-# -------- AXIOMS --------
-
-def axiom_extraction(data):
-    axioms = []
-    for item in data["stable_interpretation"]:
-        if len(item.split()) > 4:
-            axioms.append(f"Potential principle: {item}")
-    return axioms
-
-
-# -------- DECISION FRAMEWORK --------
-
-def extended_decision_framework(data):
-    return {
-        "risk_level": "unknown",
-        "ethical_flag": "neutral",
-        "structural_integrity": "stable"
-    }
-
-
-# -------- FINAL PASS --------
-
-def final_orr_pass(data):
-    return {
-        "verified_output": data["stable_interpretation"],
-        "narrative_creep_removed": True
-    }
-
-
-# -------- OUTPUT CLASSIFICATION --------
-
-def output_classification(data):
-    return {
-        "facts": data["verified_output"],
-        "hypotheses": [],
-        "speculation": [],
-        "questions": []
-    }
-
-
-# -------- FULL PIPELINE --------
+# -----------------------
+# PIPELINE (SIMPLIFIED CLEAN)
+# -----------------------
 
 def run_pipeline(question):
 
     ai_answer = get_ai_answer(question)
 
-    pz = paper_zero_layer(ai_answer)
-    orr = orr_core(pz)
-    orns = orns_stabilization(orr)
-    axioms = axiom_extraction(orns)
-    extended = extended_decision_framework(orns)
-    final = final_orr_pass(orns)
-    classified = output_classification(final)
+    facts = extract_facts(ai_answer)
 
     return {
-        "original_question": question,
-        "ai_answer": ai_answer,
-        "paper_zero": pz,
-        "orr": orr,
-        "orns": orns,
-        "axioms": axioms,
-        "decision_framework": extended,
-        "final_output": classified
+        "question": question,
+        "facts": facts,
+        "answer": ai_answer
     }
 
 
-# -------- ROUTES --------
+# -----------------------
+# HOME PAGE UI
+# -----------------------
 
 @app.get("/", response_class=HTMLResponse)
 def home():
+
     return """
-    <html>
-        <head>
-            <title>Campbell Cognitive Pipeline</title>
-        </head>
-        <body>
-            <h2>Ask a Question</h2>
+<html>
+<head>
+<title>Campbell Cognitive Pipeline</title>
+<style>
+body {
+    font-family: Arial;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+textarea {
+    width: 100%;
+    height: 120px;
+    background: #020617;
+    color: white;
+    border: 1px solid #334155;
+    padding: 10px;
+}
+button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    background: #22c55e;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+pre {
+    background: #020617;
+    padding: 15px;
+    margin-top: 20px;
+    border: 1px solid #334155;
+}
+</style>
+</head>
 
-            <textarea id="q" rows="5" cols="60"></textarea><br>
-            <button onclick="ask()">Analyze</button>
+<body>
 
-            <pre id="r"></pre>
+<h2>Campbell Cognitive Pipeline</h2>
 
-            <script>
-            async function ask(){
-                let q=document.getElementById("q").value;
+<textarea id="q" placeholder="Ask a question..."></textarea>
+<br>
+<button onclick="ask()">Analyze</button>
 
-                let res=await fetch("/analyze",{
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({question:q})
-                });
+<pre id="r">Waiting for question...</pre>
 
-                let data=await res.json();
-                document.getElementById("r").textContent=
-                    JSON.stringify(data,null,2);
-            }
-            </script>
-        </body>
-    </html>
-    """ 
+<script>
+async function ask() {
 
-@app.post("/analyze")
-def analyze_question(data: QuestionInput):
-    return run_pipeline(data.question)
+    let q = document.getElementById("q").value;
+
+    let res = await fetch("/analyze", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({question: q})
+    });
+
+    let data = await res.json();
+
+    document.getElementById("r").textContent =
+        "FACTS:\\n\\n- " +
+        data.facts.join("\\n- ") +
+        "\\n\\nANSWER:\\n\\n" +
+        data.answer;
+}
+</script>
+
+</body>
+</html>
+"""
+
+
+# -----------------------
+# ANALYZE ROUTE
+# ----------------
