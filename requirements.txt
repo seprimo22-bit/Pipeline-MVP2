@@ -1,6 +1,5 @@
 fastapi
-uvicorn
-jinja2
+uvicorn[standard]
 openai
+jinja2
 pydantic
-gunicorn
