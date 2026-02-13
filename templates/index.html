@@ -1,79 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Campbell Cognitive Pipeline</title>
-    <style>
-        body {
-            font-family: Arial;
-            max-width: 700px;
-            margin: 40px auto;
-            padding: 20px;
-            background: #f5f7fa;
-        }
+<title>Campbell Cognitive Pipeline</title>
 
-        h1 {
-            text-align: center;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: white;
+    padding: 30px;
+}
 
-        textarea {
-            width: 100%;
-            height: 120px;
-            font-size: 16px;
-            padding: 10px;
-        }
+textarea {
+    width: 100%;
+    height: 120px;
+    font-size: 16px;
+    padding: 10px;
+}
 
-        button {
-            width: 100%;
-            padding: 12px;
-            font-size: 18px;
-            margin-top: 10px;
-            background: #2c7be5;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
 
-        button:hover {
-            background: #1a5edb;
-        }
+button:hover {
+    background: #1e40af;
+}
 
-        pre {
-            background: white;
-            padding: 15px;
-            margin-top: 20px;
-            overflow-x: auto;
-            border-radius: 6px;
-        }
-    </style>
+.result {
+    margin-top: 30px;
+    padding: 20px;
+    background: #1e293b;
+    border-radius: 8px;
+}
+</style>
+
 </head>
-
 <body>
 
-<h1>Campbell Cognitive Pipeline</h1>
+<h2>Campbell Cognitive Pipeline</h2>
+<p>Ask a question and get clean factual output.</p>
 
-<textarea id="question"
-placeholder="Ask a question..."></textarea>
-
+<textarea id="q" placeholder="Ask anything..."></textarea>
+<br>
 <button onclick="ask()">Analyze</button>
 
-<pre id="result">Results will appear here...</pre>
+<div class="result" id="result"></div>
 
 <script>
-async function ask() {
-    const question = document.getElementById("question").value;
+async function ask(){
+    let question=document.getElementById("q").value;
 
-    const res = await fetch("/analyze", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ question })
+    let res=await fetch("/analyze",{
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({question:question})
     });
 
-    const data = await res.json();
+    let data=await res.json();
 
-    document.getElementById("result").textContent =
-        JSON.stringify(data, null, 2);
+    let facts = data.final_output?.facts || [];
+    let ai_answer = data.ai_answer || "No answer";
+
+    let html = "<h3>AI Answer</h3>";
+    html += "<p>"+ai_answer+"</p>";
+
+    if(facts.length){
+        html += "<h3>Extracted Facts</h3><ul>";
+        facts.forEach(f=> html += "<li>"+f+"</li>");
+        html += "</ul>";
+    }
+
+    document.getElementById("result").innerHTML = html;
 }
 </script>
 
