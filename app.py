@@ -6,9 +6,8 @@ import os
 import re
 from openai import OpenAI
 
-# ---------- APP SETUP ----------
+# ---------- INITIALIZE APP ----------
 app = FastAPI(title="Campbell Cognitive Pipeline")
-
 templates = Jinja2Templates(directory="templates")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -18,18 +17,17 @@ class QuestionInput(BaseModel):
     question: str
 
 
-# ---------- IMPROVED AI FACT RETRIEVAL ----------
+# ---------- AI FACT RETRIEVAL ----------
 def get_ai_answer(question):
 
     SYSTEM_PROMPT = """
     Provide 12–15 independent factual statements.
 
     Rules:
-    - Each fact must stand alone.
-    - Avoid narrative explanation.
-    - Avoid speculation, hedging, or opinion.
-    - No filler text.
-    - Short, clear factual sentences only.
+    - Facts must stand alone.
+    - No narrative explanation.
+    - No speculation.
+    - Clear concise sentences.
     """
 
     try:
@@ -48,21 +46,19 @@ def get_ai_answer(question):
         return f"AI retrieval error: {str(e)}"
 
 
-# ---------- PAPER ZERO FILTER ----------
+# ---------- PAPER ZERO ----------
 def paper_zero_layer(text):
 
     sentences = re.split(r"[.!?]", text)
-
     facts = []
     assumptions = []
-    unknowns = []
 
     for s in sentences:
         s = s.strip()
         if not s:
             continue
 
-        if any(w in s.lower() for w in ["maybe", "possibly", "likely"]):
+        if any(w in s.lower() for w in ["maybe", "likely", "possibly"]):
             assumptions.append(s)
         else:
             facts.append(s)
@@ -70,7 +66,7 @@ def paper_zero_layer(text):
     return {
         "facts": facts,
         "assumptions": assumptions,
-        "unknowns": unknowns
+        "unknowns": []
     }
 
 
@@ -86,45 +82,20 @@ def orr_core(data):
     }
 
 
-# ---------- ORNS STABILIZATION ----------
+# ---------- ORNS ----------
 def orns_stabilization(data):
 
     return {
         "stable_interpretation": data["observations"],
-        "ambiguity_checked": True,
-        "emotional_bias_reduced": True
+        "ambiguity_checked": True
     }
-
-
-# ---------- AXIOM EXTRACTION ----------
-def axiom_extraction(data):
-
-    axioms = []
-
-    for item in data["stable_interpretation"]:
-        if len(item.split()) > 5:
-            axioms.append(f"Potential principle: {item}")
-
-    return axioms
 
 
 # ---------- FINAL PASS ----------
-def final_orr_pass(data):
+def final_pass(data):
 
     return {
-        "verified_output": data["stable_interpretation"],
-        "narrative_creep_removed": True
-    }
-
-
-# ---------- CLASSIFICATION ----------
-def output_classification(data):
-
-    return {
-        "facts": data["verified_output"],
-        "hypotheses": [],
-        "speculation": [],
-        "questions": []
+        "verified_output": data["stable_interpretation"]
     }
 
 
@@ -132,22 +103,15 @@ def output_classification(data):
 def run_pipeline(question):
 
     ai_answer = get_ai_answer(question)
-
     pz = paper_zero_layer(ai_answer)
     orr = orr_core(pz)
     orns = orns_stabilization(orr)
-    axioms = axiom_extraction(orns)
-    final = final_orr_pass(orns)
-    classified = output_classification(final)
+    final = final_pass(orns)
 
     return {
         "original_question": question,
         "ai_answer": ai_answer,
-        "paper_zero": pz,
-        "orr": orr,
-        "orns": orns,
-        "axioms": axioms,
-        "final_output": classified
+        "final_output": final["verified_output"]
     }
 
 
