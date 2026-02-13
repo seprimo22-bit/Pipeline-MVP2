@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 
 
-# -------- INITIALIZE APP --------
+# ---- Initialize FastAPI ----
 app = FastAPI(title="Campbell Cognitive Pipeline")
 
 app.add_middleware(
@@ -23,12 +23,12 @@ templates = Jinja2Templates(directory="templates")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# -------- REQUEST MODEL --------
+# ---- Request Model ----
 class QuestionInput(BaseModel):
     question: str
 
 
-# -------- AI FACT RETRIEVAL --------
+# ---- AI Fact Pipeline ----
 def get_ai_answer(question):
 
     SYSTEM_PROMPT = """
@@ -38,7 +38,7 @@ Rules:
 - Each fact stands alone.
 - No speculation or opinion.
 - Avoid narrative explanation.
-- Short factual sentences.
+- Short clear factual sentences.
 """
 
     completion = client.chat.completions.create(
@@ -51,13 +51,13 @@ Rules:
 
     answer = completion.choices[0].message.content
 
-    # Optional cleanup
+    # Clean formatting
     answer = re.sub(r"\n{2,}", "\n", answer.strip())
 
     return answer
 
 
-# -------- WEB ROUTES --------
+# ---- Routes ----
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(
