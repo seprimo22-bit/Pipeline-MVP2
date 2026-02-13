@@ -3,5 +3,5 @@ uvicorn
 gunicorn
 jinja2
 openai
-python-dotenv
 pydantic
+python-dotenv
