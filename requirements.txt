@@ -1,6 +1,6 @@
 fastapi
-uvicorn[standard]
-openai
+uvicorn
 jinja2
+openai
 pydantic
-python-dotenv
+gunicorn
