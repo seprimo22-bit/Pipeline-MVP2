@@ -32,13 +32,11 @@ class QuestionInput(BaseModel):
 def get_ai_answer(question):
 
     SYSTEM_PROMPT = """
-Provide 12–15 independent factual statements.
-
-Rules:
-- Each fact stands alone.
-- No speculation or opinion.
-- Avoid narrative explanation.
-- Short clear factual sentences.
+Provide 10–12 concise factual statements.
+One fact per line.
+Avoid speculation or opinion.
+No explanation.
+Short factual sentences only.
 """
 
     completion = client.chat.completions.create(
@@ -51,8 +49,10 @@ Rules:
 
     answer = completion.choices[0].message.content
 
-    # Clean formatting
-    answer = re.sub(r"\n{2,}", "\n", answer.strip())
+    # Clean formatting → convert numbered list to bullets
+    facts = answer.split("\n")
+    facts = [f.strip("0123456789. ").strip() for f in facts if f.strip()]
+    answer = "\n• " + "\n• ".join(facts)
 
     return answer
 
