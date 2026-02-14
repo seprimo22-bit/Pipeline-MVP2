@@ -6,9 +6,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
+from rag_engine import search_docs
 
 
-# ---- Initialize FastAPI ----
 app = FastAPI(title="Campbell Cognitive Pipeline")
 
 app.add_middleware(
@@ -23,57 +23,79 @@ templates = Jinja2Templates(directory="templates")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# ---- Request Model ----
 class QuestionInput(BaseModel):
     question: str
 
 
-# ---- AI Fact Pipeline ----
+# -------- Fact Verification + ORR Structure --------
+
+def analyze_response(answer, context):
+
+    hallucination_flag = "LOW"
+
+    if not context:
+        hallucination_flag = "HIGH"
+    elif len(answer) > 3 * len(" ".join(context)):
+        hallucination_flag = "MEDIUM"
+
+    return {
+        "hallucination_risk": hallucination_flag,
+        "context_used": len(context) > 0,
+        "constraint_check": "PASS" if context else "NO DATA"
+    }
+
+
+# -------- Main Pipeline --------
+
 def get_ai_answer(question):
 
-    SYSTEM_PROMPT = """
-Provide 10–12 concise factual statements.
-One fact per line.
-Avoid speculation or opinion.
-No explanation.
-Short factual sentences only.
+    context = search_docs(question)
+
+    context_text = "\n\n".join(context[:3])
+
+    system_prompt = f"""
+You are a research assistant.
+
+Answer ONLY using the provided context.
+If the answer is not present, say:
+"No verified reference found."
+
+Context:
+{context_text}
 """
 
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": question},
         ],
     )
 
-    answer = completion.choices[0].message.content
+    answer = completion.choices[0].message.content.strip()
 
-    # Clean formatting → convert numbered list to bullets
-    facts = answer.split("\n")
-    facts = [f.strip("0123456789. ").strip() for f in facts if f.strip()]
-    answer = "\n• " + "\n• ".join(facts)
+    verification = analyze_response(answer, context)
 
-    return answer
+    return {
+        "answer": answer,
+        "citations": context[:2],
+        "verification": verification
+    }
 
 
-# ---- Routes ----
+# -------- Routes --------
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request}
-    )
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.post("/ask")
 async def ask_pipeline(data: QuestionInput):
+
     try:
-        answer = get_ai_answer(data.question)
-        return JSONResponse({"answer": answer})
+        result = get_ai_answer(data.question)
+        return JSONResponse(result)
 
     except Exception as e:
-        return JSONResponse(
-            {"error": str(e)},
-            status_code=500
-        )
+        return JSONResponse({"error": str(e)}, status_code=500)
