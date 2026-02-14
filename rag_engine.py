@@ -1,6 +1,7 @@
 import os
 import glob
 from pathlib import Path
+from openai import OpenAI
 
 # Optional PDF support
 try:
@@ -8,14 +9,15 @@ try:
 except:
     PyPDF2 = None
 
-
+# ------------------------
+# CONFIG
+# ------------------------
 DOCUMENT_FOLDER = "documents"
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-# -------------------------------
+# ------------------------
 # TEXT EXTRACTION
-# -------------------------------
-
+# ------------------------
 def read_text_file(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -27,19 +29,37 @@ def read_text_file(path):
 def read_pdf_file(path):
     if not PyPDF2:
         return ""
+
     text = ""
     try:
         with open(path, "rb") as f:
             reader = PyPDF2.PdfReader(f)
             for page in reader.pages:
-                text += page.extract_text() or ""
+                t = page.extract_text()
+                if t:
+                    text += t
     except:
         pass
+
     return text
 
 
+# ------------------------
+# LOAD DOCUMENTS + EMBEDDINGS
+# ------------------------
+DOCUMENT_CACHE = []
+DOC_EMBEDDINGS = []
+
+
 def load_documents():
-    docs = []
+    global DOCUMENT_CACHE, DOC_EMBEDDINGS
+
+    DOCUMENT_CACHE.clear()
+    DOC_EMBEDDINGS.clear()
+
+    if not os.path.exists(DOCUMENT_FOLDER):
+        print("No documents folder found.")
+        return
 
     for path in glob.glob(f"{DOCUMENT_FOLDER}/**/*", recursive=True):
 
@@ -55,43 +75,68 @@ def load_documents():
         else:
             continue
 
-        if content.strip():
-            docs.append({
+        if not content.strip():
+            continue
+
+        content = content[:4000]
+
+        try:
+            emb = client.embeddings.create(
+                model="text-embedding-3-small",
+                input=content
+            )
+
+            DOCUMENT_CACHE.append({
                 "file": os.path.basename(path),
                 "content": content
             })
 
-    return docs
+            DOC_EMBEDDINGS.append(emb.data[0].embedding)
+
+        except Exception as e:
+            print("Embedding error:", e)
 
 
-DOCUMENT_CACHE = load_documents()
+load_documents()
 
 
-# -------------------------------
-# SIMPLE SEARCH FUNCTION
-# -------------------------------
+# ------------------------
+# SEMANTIC SEARCH
+# ------------------------
+def search_documents(question, top_k=3):
 
-def search_documents(question):
+    if not DOCUMENT_CACHE:
+        return []
 
-    question = question.lower()
+    try:
+        q_emb = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=question
+        ).data[0].embedding
+
+    except Exception as e:
+        print("Query embedding error:", e)
+        return []
+
+    # cosine similarity manually
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    sims = cosine_similarity([q_emb], DOC_EMBEDDINGS)[0]
+
+    ranked = sorted(
+        zip(DOCUMENT_CACHE, sims),
+        key=lambda x: x[1],
+        reverse=True
+    )[:top_k]
+
     results = []
 
-    for doc in DOCUMENT_CACHE:
+    for doc, score in ranked:
+        results.append({
+            "file": doc["file"],
+            "score": float(score),
+            "snippet": doc["content"][:1200]
+        })
 
-        text = doc["content"].lower()
-
-        score = sum(
-            1 for word in question.split()
-            if word in text
-        )
-
-        if score > 0:
-            results.append({
-                "file": doc["file"],
-                "score": score,
-                "snippet": doc["content"][:1500]
-            })
-
-    results.sort(key=lambda x: x["score"], reverse=True)
-
-    return results[:3]
+    return results
