@@ -1,64 +1,159 @@
-==============================
+import os
+import glob
+from flask import Flask, request, jsonify, render_template
+from openai import OpenAI
+from PyPDF2 import PdfReader
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
-Campbell Cognitive Pipeline
+# ---------------------------
+# CONFIG
+# ---------------------------
 
-Hybrid RAG + General Knowledge Fallback
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DOCS_PATH = "documents"
 
-Drop-in replacement example
+client = OpenAI(api_key=OPENAI_API_KEY)
+app = Flask(__name__)
 
-==============================
+# ---------------------------
+# LOAD DOCUMENTS (RAG CORE)
+# ---------------------------
 
-import os from flask import Flask, request, jsonify, render_template from openai import OpenAI from rag_engine import search_documents
+documents = []
+doc_vectors = []
 
-app = Flask(name) client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def load_documents():
+    global documents, doc_vectors
+    documents = []
+    doc_vectors = []
 
-------------------------------
+    for file in glob.glob(f"{DOCS_PATH}/*.pdf"):
+        try:
+            reader = PdfReader(file)
+            text = ""
 
-Helper: Ask general model
+            for page in reader.pages:
+                if page.extract_text():
+                    text += page.extract_text()
 
-------------------------------
+            if text.strip():
+                documents.append((file, text[:4000]))
 
-def general_model_answer(question): response = client.chat.completions.create( model="gpt-4o-mini", messages=[ {"role": "system", "content": "Answer clearly and factually. Label this GENERAL KNOWLEDGE."}, {"role": "user", "content": question} ] ) return response.choices[0].message.content
+                emb = client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=text[:4000]
+                )
+                doc_vectors.append(emb.data[0].embedding)
 
-------------------------------
+        except Exception as e:
+            print("Document load error:", e)
 
-Main RAG + Fallback Logic
+load_documents()
 
-------------------------------
+# ---------------------------
+# GENERAL MODEL KNOWLEDGE
+# ---------------------------
 
-def hybrid_answer(question): rag_result = search_documents(question)
+def general_answer(question):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content":
+                 "Provide neutral factual information. Avoid speculation."},
+                {"role": "user", "content": question}
+            ],
+            temperature=0.3
+        )
 
-if rag_result and rag_result.get("confidence", 0) > 0.6:
-    return {
-        "answer": rag_result["answer"],
-        "source": "DOCUMENT-RAG",
-        "confidence": rag_result["confidence"]
-    }
+        return response.choices[0].message.content
 
-# fallback to general model
-general = general_model_answer(question)
+    except Exception as e:
+        return f"General model error: {e}"
 
-return {
-    "answer": general,
-    "source": "GENERAL-MODEL",
-    "confidence": 0.5
-}
+# ---------------------------
+# RAG RETRIEVAL
+# ---------------------------
 
-------------------------------
+def rag_search(question):
 
-Flask Routes
+    if not documents:
+        return None, 0
 
-------------------------------
+    q_emb = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=question
+    ).data[0].embedding
 
-@app.route("/") def home(): return render_template("index.html")
+    sims = cosine_similarity([q_emb], doc_vectors)[0]
+    idx = np.argmax(sims)
 
-@app.route("/ask", methods=["POST"]) def ask(): data = request.json question = data.get("question")
+    return documents[idx], sims[idx]
 
-try:
-    result = hybrid_answer(question)
-    return jsonify(result)
+# ---------------------------
+# HYBRID PIPELINE LOGIC
+# ---------------------------
 
-except Exception as e:
-    return jsonify({"error": str(e)})
+def hybrid_pipeline(question):
 
-if name == "main": app.run(host="0.0.0.0", port=10000)
+    rag_doc, rag_score = rag_search(question)
+    general = general_answer(question)
+
+    if rag_doc:
+        filename, text = rag_doc
+    else:
+        filename, text = None, ""
+
+    # Weighting logic
+    if rag_score > 0.55:
+        confidence = "HIGH RAG SUPPORT"
+        answer = f"""
+{general}
+
+--- DOCUMENT CONTEXT ---
+{text[:800]}
+
+Source: {filename}
+"""
+    elif rag_score > 0.30:
+        confidence = "MIXED SUPPORT"
+        answer = f"""
+{general}
+
+Partial document support found.
+Source: {filename}
+"""
+    else:
+        confidence = "LOW RAG SUPPORT"
+        answer = general
+
+    return answer, rag_score, confidence
+
+# ---------------------------
+# ROUTES
+# ---------------------------
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/ask", methods=["POST"])
+def ask():
+
+    question = request.json.get("question")
+
+    answer, score, conf = hybrid_pipeline(question)
+
+    return jsonify({
+        "answer": answer,
+        "rag_score": float(score),
+        "confidence": conf
+    })
+
+# ---------------------------
+# RUN
+# ---------------------------
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
