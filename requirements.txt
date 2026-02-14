@@ -4,4 +4,7 @@ gunicorn
 jinja2
 openai
 pydantic
+PyPDF2
+faiss-cpu
+numpy
 python-dotenv
