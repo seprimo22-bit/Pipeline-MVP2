@@ -1,55 +1,97 @@
-==============================
+import os
+import glob
+from pathlib import Path
 
-Campbell Cognitive Pipeline
+# Optional PDF support
+try:
+    import PyPDF2
+except:
+    PyPDF2 = None
 
-Hybrid RAG + General Knowledge Fallback
 
-Drop-in replacement example
+DOCUMENT_FOLDER = "documents"
 
-==============================
 
-import os from flask import Flask, request, jsonify, render_template from openai import OpenAI from rag_engine import search_documents
+# -------------------------------
+# TEXT EXTRACTION
+# -------------------------------
 
-app = Flask(name) client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def read_text_file(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except:
+        return ""
 
-------------------------------
 
-Helper: Ask general model
+def read_pdf_file(path):
+    if not PyPDF2:
+        return ""
+    text = ""
+    try:
+        with open(path, "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                text += page.extract_text() or ""
+    except:
+        pass
+    return text
 
-------------------------------
 
-def general_model_answer(question): response = client.chat.completions.create( model="gpt-4o-mini", messages=[ {"role": "system", "content": "Answer clearly and factually. Label this GENERAL KNOWLEDGE."}, {"role": "user", "content": question} ] ) return response.choices[0].message.content
+def load_documents():
+    docs = []
 
-------------------------------
+    for path in glob.glob(f"{DOCUMENT_FOLDER}/**/*", recursive=True):
 
-Main RAG + Fallback Logic
+        if os.path.isdir(path):
+            continue
 
-------------------------------
+        ext = Path(path).suffix.lower()
 
-def hybrid_answer(question): rag_result = search_documents(question)
+        if ext == ".pdf":
+            content = read_pdf_file(path)
+        elif ext in [".txt", ".md"]:
+            content = read_text_file(path)
+        else:
+            continue
 
-if rag_result and rag_result.get("confidence", 0) > 0.6:
-    return {
-        "answer": rag_result["answer"],
-        "source": "DOCUMENT-RAG",
-        "confidence": rag_result["confidence"]
-    }
+        if content.strip():
+            docs.append({
+                "file": os.path.basename(path),
+                "content": content
+            })
 
-# fallback to general model
-general = general_model_answer(question)
+    return docs
 
-return {
-    "answer": general,
-    "source": "GENERAL-MODEL",
-    "confidence": 0.5
-}
 
-------------------------------
+DOCUMENT_CACHE = load_documents()
 
-Flask Routes
 
-------------------------------
+# -------------------------------
+# SIMPLE SEARCH FUNCTION
+# -------------------------------
 
-@app.route("/") def home(): return render_template("index.html")
+def search_documents(question):
 
-@app.route("/ask",
+    question = question.lower()
+    results = []
+
+    for doc in DOCUMENT_CACHE:
+
+        text = doc["content"].lower()
+
+        score = sum(
+            1 for word in question.split()
+            if word in text
+        )
+
+        if score > 0:
+            results.append({
+                "file": doc["file"],
+                "score": score,
+                "snippet": doc["content"][:1500]
+            })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+
+    return results[:3]
