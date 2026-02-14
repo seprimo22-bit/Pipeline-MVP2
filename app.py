@@ -1,194 +1,64 @@
-import os
-import numpy as np
-import faiss
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from openai import OpenAI
-from PyPDF2 import PdfReader
+==============================
 
-# ------------------ APP SETUP ------------------
+Campbell Cognitive Pipeline
 
-app = FastAPI(title="Campbell Cognitive Pipeline")
-templates = Jinja2Templates(directory="templates")
+Hybrid RAG + General Knowledge Fallback
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+Drop-in replacement example
 
-DOC_FOLDER = "documents"
-INDEX_FILE = "faiss.index"
-META_FILE = "doc_meta.npy"
+==============================
 
-# ------------------ REQUEST MODEL ------------------
+import os from flask import Flask, request, jsonify, render_template from openai import OpenAI from rag_engine import search_documents
 
-class QuestionInput(BaseModel):
-    question: str
+app = Flask(name) client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# ------------------ DOCUMENT LOADING ------------------
+------------------------------
 
-def load_documents():
-    texts = []
-    meta = []
+Helper: Ask general model
 
-    for file in os.listdir(DOC_FOLDER):
-        if file.endswith(".pdf"):
-            path = os.path.join(DOC_FOLDER, file)
-            reader = PdfReader(path)
+------------------------------
 
-            for i, page in enumerate(reader.pages):
-                text = page.extract_text()
-                if text:
-                    texts.append(text)
-                    meta.append({"file": file, "page": i+1})
+def general_model_answer(question): response = client.chat.completions.create( model="gpt-4o-mini", messages=[ {"role": "system", "content": "Answer clearly and factually. Label this GENERAL KNOWLEDGE."}, {"role": "user", "content": question} ] ) return response.choices[0].message.content
 
-    return texts, meta
+------------------------------
 
+Main RAG + Fallback Logic
 
-# ------------------ EMBEDDINGS ------------------
+------------------------------
 
-def embed_texts(texts):
-    embeddings = []
+def hybrid_answer(question): rag_result = search_documents(question)
 
-    for t in texts:
-        emb = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=t[:3000]
-        )
-        embeddings.append(emb.data[0].embedding)
+if rag_result and rag_result.get("confidence", 0) > 0.6:
+    return {
+        "answer": rag_result["answer"],
+        "source": "DOCUMENT-RAG",
+        "confidence": rag_result["confidence"]
+    }
 
-    return np.array(embeddings).astype("float32")
+# fallback to general model
+general = general_model_answer(question)
 
+return {
+    "answer": general,
+    "source": "GENERAL-MODEL",
+    "confidence": 0.5
+}
 
-# ------------------ BUILD INDEX ------------------
+------------------------------
 
-def build_index():
-    texts, meta = load_documents()
+Flask Routes
 
-    if not texts:
-        return None, None, None
+------------------------------
 
-    emb = embed_texts(texts)
+@app.route("/") def home(): return render_template("index.html")
 
-    index = faiss.IndexFlatL2(len(emb[0]))
-    index.add(emb)
+@app.route("/ask", methods=["POST"]) def ask(): data = request.json question = data.get("question")
 
-    faiss.write_index(index, INDEX_FILE)
-    np.save(META_FILE, {"texts": texts, "meta": meta})
+try:
+    result = hybrid_answer(question)
+    return jsonify(result)
 
-    return index, texts, meta
+except Exception as e:
+    return jsonify({"error": str(e)})
 
-
-def load_index():
-    if not os.path.exists(INDEX_FILE):
-        return build_index()
-
-    index = faiss.read_index(INDEX_FILE)
-    data = np.load(META_FILE, allow_pickle=True).item()
-
-    return index, data["texts"], data["meta"]
-
-
-# ------------------ SEARCH ------------------
-
-def search_docs(query, k=3):
-    index, texts, meta = load_index()
-
-    if index is None:
-        return []
-
-    emb = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=query
-    )
-
-    q = np.array([emb.data[0].embedding]).astype("float32")
-    distances, indices = index.search(q, k)
-
-    results = []
-    for i, idx in enumerate(indices[0]):
-        results.append({
-            "text": texts[idx],
-            "file": meta[idx]["file"],
-            "page": meta[idx]["page"],
-            "distance": float(distances[0][i])
-        })
-
-    return results
-
-
-# ------------------ ANSWER GENERATION ------------------
-
-def generate_answer(question):
-
-    docs = search_docs(question)
-
-    if not docs:
-        return {"answer": "No verified reference found."}
-
-    context = "\n\n".join([d["text"][:1500] for d in docs])
-
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Answer ONLY using provided context. "
-                    "If uncertain, say so. Avoid speculation."
-                ),
-            },
-            {"role": "system", "content": context},
-            {"role": "user", "content": question},
-        ],
-    )
-
-    answer = completion.choices[0].message.content
-
-    # -------- CONFIDENCE SCORE --------
-    avg_distance = sum(d["distance"] for d in docs) / len(docs)
-
-    if avg_distance < 0.5:
-        confidence = "HIGH"
-    elif avg_distance < 1.0:
-        confidence = "MEDIUM"
-    else:
-        confidence = "LOW"
-
-    hallucination_flag = (
-        "LOW RAG SUPPORT" if confidence == "LOW" else "SUPPORTED"
-    )
-
-    citations = "\n".join(
-        [f"{d['file']} (p.{d['page']})" for d in docs]
-    )
-
-    structured = f"""
---- CITATIONS ---
-{citations}
-
---- CONFIDENCE ---
-{confidence}
-
---- HALLUCINATION CHECK ---
-{hallucination_flag}
-
---- ORR VALIDATION ---
-Constraint Anchor: Document-grounded
-Entropy Risk: {confidence}
-Verification Status: {hallucination_flag}
-"""
-
-    return {"answer": answer + "\n\n" + structured}
-
-
-# ------------------ ROUTES ------------------
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
-@app.post("/ask")
-async def ask_pipeline(data: QuestionInput):
-    result = generate_answer(data.question)
-    return JSONResponse(result)
+if name == "main": app.run(host="0.0.0.0", port=10000)
