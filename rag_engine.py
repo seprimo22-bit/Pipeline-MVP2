@@ -1,84 +1,55 @@
-import os
-import numpy as np
-import faiss
-from PyPDF2 import PdfReader
-from openai import OpenAI
+==============================
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+Campbell Cognitive Pipeline
 
-INDEX_FILE = "faiss_index.bin"
-TEXT_FILE = "text_chunks.npy"
+Hybrid RAG + General Knowledge Fallback
 
+Drop-in replacement example
 
-def extract_pdf_text(folder="documents"):
-    texts = []
+==============================
 
-    if not os.path.exists(folder):
-        return texts
+import os from flask import Flask, request, jsonify, render_template from openai import OpenAI from rag_engine import search_documents
 
-    for file in os.listdir(folder):
-        if file.endswith(".pdf"):
-            reader = PdfReader(os.path.join(folder, file))
-            for page in reader.pages:
-                txt = page.extract_text()
-                if txt:
-                    texts.append(txt)
+app = Flask(name) client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    return texts
+------------------------------
 
+Helper: Ask general model
 
-def embed_texts(texts):
-    embeddings = []
+------------------------------
 
-    for text in texts:
-        emb = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text[:8000]
-        )
-        embeddings.append(emb.data[0].embedding)
+def general_model_answer(question): response = client.chat.completions.create( model="gpt-4o-mini", messages=[ {"role": "system", "content": "Answer clearly and factually. Label this GENERAL KNOWLEDGE."}, {"role": "user", "content": question} ] ) return response.choices[0].message.content
 
-    return np.array(embeddings).astype("float32")
+------------------------------
 
+Main RAG + Fallback Logic
 
-def build_index():
-    texts = extract_pdf_text()
+------------------------------
 
-    if not texts:
-        return None, []
+def hybrid_answer(question): rag_result = search_documents(question)
 
-    embeddings = embed_texts(texts)
+if rag_result and rag_result.get("confidence", 0) > 0.6:
+    return {
+        "answer": rag_result["answer"],
+        "source": "DOCUMENT-RAG",
+        "confidence": rag_result["confidence"]
+    }
 
-    index = faiss.IndexFlatL2(len(embeddings[0]))
-    index.add(embeddings)
+# fallback to general model
+general = general_model_answer(question)
 
-    faiss.write_index(index, INDEX_FILE)
-    np.save(TEXT_FILE, texts)
+return {
+    "answer": general,
+    "source": "GENERAL-MODEL",
+    "confidence": 0.5
+}
 
-    return index, texts
+------------------------------
 
+Flask Routes
 
-def load_index():
-    if os.path.exists(INDEX_FILE):
-        return (
-            faiss.read_index(INDEX_FILE),
-            np.load(TEXT_FILE, allow_pickle=True)
-        )
+------------------------------
 
-    return build_index()
+@app.route("/") def home(): return render_template("index.html")
 
-
-def search_docs(query, k=3):
-    index, texts = load_index()
-
-    if index is None:
-        return []
-
-    emb = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=query
-    )
-
-    q = np.array([emb.data[0].embedding]).astype("float32")
-    _, indices = index.search(q, k)
-
-    return [texts[i] for i in indices[0]]
+@app.route("/ask",
