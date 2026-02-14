@@ -1,59 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Campbell Cognitive Pipeline</title>
+<title>Campbell Cognitive Pipeline</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: auto;
-            padding: 30px;
-            background: #f4f6f8;
-        }
+<style>
+body{
+ font-family: Arial, sans-serif;
+ max-width:900px;
+ margin:auto;
+ padding:30px;
+ background:#f4f6f8;
+}
 
-        h1 {
-            text-align: center;
-        }
+h1{
+ text-align:center;
+}
 
-        input {
-            width: 75%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
+input{
+ width:75%;
+ padding:12px;
+ font-size:16px;
+ border-radius:6px;
+ border:1px solid #ccc;
+}
 
-        button {
-            padding: 12px 18px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: none;
-            background: #2e7dff;
-            color: white;
-            cursor: pointer;
-        }
+button{
+ padding:12px 18px;
+ font-size:16px;
+ border-radius:6px;
+ border:none;
+ background:#2e7dff;
+ color:white;
+ cursor:pointer;
+}
 
-        button:hover {
-            background: #1b5ed6;
-        }
+button:hover{
+ background:#1b5ed6;
+}
 
-        #answer {
-            margin-top: 25px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            line-height: 1.6;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            white-space: pre-wrap;
-        }
-
-        .meta {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #555;
-        }
-    </style>
+#answer{
+ margin-top:25px;
+ padding:20px;
+ background:white;
+ border-radius:8px;
+ line-height:1.6;
+ box-shadow:0 2px 8px rgba(0,0,0,0.08);
+ white-space:pre-wrap;
+}
+</style>
 </head>
 
 <body>
@@ -66,52 +60,28 @@
 <div id="answer"></div>
 
 <script>
-async function askQuestion() {
+async function askQuestion(){
 
-    const q = document.getElementById("question").value.trim();
+ const q=document.getElementById("question").value;
 
-    if (!q) {
-        alert("Enter a question first.");
-        return;
-    }
+ document.getElementById("answer").innerText="Thinking...";
 
-    document.getElementById("answer").innerHTML = "Thinking...";
+ try{
+  const res=await fetch("/ask",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({question:q})
+  });
 
-    try {
-        const response = await fetch("/ask", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ question: q })
-        });
+  const data=await res.json();
 
-        const data = await response.json();
+  document.getElementById("answer").innerText=
+   data.answer || data.error;
 
-        let output = "";
-
-        if (data.answer) {
-            output += "<b>Answer:</b><br>" + data.answer + "<br>";
-        } else if (data.error) {
-            output += "<b>Error:</b> " + data.error;
-        } else {
-            output += "No response returned.";
-        }
-
-        if (data.confidence) {
-            output += "<div class='meta'><b>Confidence:</b> " + data.confidence + "</div>";
-        }
-
-        if (data.rag_score !== undefined) {
-            output += "<div class='meta'><b>RAG Score:</b> " + data.rag_score + "</div>";
-        }
-
-        document.getElementById("answer").innerHTML = output;
-
-    } catch (err) {
-        document.getElementById("answer").innerHTML =
-            "<b>Pipeline connection error.</b>";
-    }
+ }catch(err){
+  document.getElementById("answer").innerText=
+   "Pipeline connection error.";
+ }
 }
 </script>
 
