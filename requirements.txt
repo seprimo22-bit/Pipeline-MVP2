@@ -1,9 +1,7 @@
-fastapi
-uvicorn
+flask
+openai
+PyPDF2
+numpy
+scikit-learn
 gunicorn
 jinja2
-openai
-pydantic
-PyPDF2
-faiss-cpu
-numpy
