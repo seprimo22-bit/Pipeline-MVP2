@@ -1,5 +1,4 @@
 import os
-import faiss
 import numpy as np
 import PyPDF2
 from openai import OpenAI
@@ -7,33 +6,68 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 DOC_FOLDER = "documents"
-
-# Global storage
-index = None
-docs = []
+DOCUMENT_CHUNKS = []
 
 
 # -------------------------
-# TEXT EXTRACTION
+# Extract text from PDFs/TXT
 # -------------------------
 def extract_text(path):
-    text = ""
     try:
         if path.lower().endswith(".pdf"):
+            text = ""
             with open(path, "rb") as f:
                 reader = PyPDF2.PdfReader(f)
                 for page in reader.pages:
                     text += page.extract_text() or ""
+            return text
+
         elif path.lower().endswith(".txt"):
             with open(path, "r", encoding="utf-8") as f:
-                text = f.read()
+                return f.read()
+
     except Exception as e:
-        print("Document read error:", e)
-    return text
+        print("Doc read error:", e)
+
+    return ""
 
 
 # -------------------------
-# EMBEDDING
+# Chunk documents
+# -------------------------
+def chunk_text(text, size=800):
+    words = text.split()
+    chunks = []
+    for i in range(0, len(words), size):
+        chunk = " ".join(words[i:i+size])
+        if len(chunk) > 100:
+            chunks.append(chunk)
+    return chunks
+
+
+# -------------------------
+# Load documents ONCE
+# -------------------------
+def load_documents():
+    if not os.path.exists(DOC_FOLDER):
+        print("Documents folder missing.")
+        return
+
+    for file in os.listdir(DOC_FOLDER):
+        path = os.path.join(DOC_FOLDER, file)
+        text = extract_text(path)
+
+        if text:
+            DOCUMENT_CHUNKS.extend(chunk_text(text))
+
+    print(f"Loaded {len(DOCUMENT_CHUNKS)} document chunks.")
+
+
+load_documents()
+
+
+# -------------------------
+# Embedding helper
 # -------------------------
 def embed(text):
     response = client.embeddings.create(
@@ -44,109 +78,77 @@ def embed(text):
 
 
 # -------------------------
-# BUILD INDEX EVERY STARTUP
-# -------------------------
-def build_index():
-    global index, docs
-
-    print("Building document index...")
-
-    docs = []
-    vectors = []
-
-    if not os.path.exists(DOC_FOLDER):
-        print("Documents folder not found.")
-        index = None
-        return
-
-    for file in os.listdir(DOC_FOLDER):
-        path = os.path.join(DOC_FOLDER, file)
-        text = extract_text(path)
-
-        if len(text) > 100:
-            docs.append(text)
-            vectors.append(embed(text))
-
-    if not vectors:
-        print("No documents indexed.")
-        index = None
-        return
-
-    dim = len(vectors[0])
-    index = faiss.IndexFlatL2(dim)
-    index.add(np.array(vectors))
-
-    print(f"Indexed {len(docs)} documents.")
-
-
-# Build on import
-build_index()
-
-
-# -------------------------
-# RETRIEVE DOCS
+# Retrieve relevant docs
 # -------------------------
 def retrieve_docs(query, k=3):
-    if index is None or not query:
+
+    if not DOCUMENT_CHUNKS or not query:
         return []
 
-    qvec = embed(query).reshape(1, -1)
-    D, I = index.search(qvec, k)
+    qvec = embed(query)
 
-    results = []
-    for i in I[0]:
-        if i < len(docs):
-            results.append(docs[i][:2000])
+    scores = []
+    for chunk in DOCUMENT_CHUNKS:
+        dvec = embed(chunk)
+        similarity = np.dot(qvec, dvec) / (
+            np.linalg.norm(qvec) * np.linalg.norm(dvec)
+        )
+        scores.append((similarity, chunk))
 
-    return results
+    scores.sort(reverse=True)
+    return [s[1] for s in scores[:k]]
 
 
 # -------------------------
-# MAIN PIPELINE
+# Main pipeline
 # -------------------------
-def run_fact_pipeline(article_text, question=None):
+def run_fact_pipeline(article_text="", question=""):
 
-    retrieved_docs = retrieve_docs(question or "")
+    retrieved_docs = retrieve_docs(question)
+    doc_context = "\n\n".join(retrieved_docs)
 
     prompt = f"""
-You are a scientific fact extraction engine.
+You are a factual analysis engine.
 
-EVIDENCE ORDER:
-1. Established science first.
-2. Article text second.
-3. Internal documents last (treat as unverified).
+ORDER OF EVIDENCE:
 
-Never treat internal documents as confirmed fact.
+1. General scientific knowledge FIRST.
+2. Article analysis SECOND.
+3. Internal documents LAST (treat as speculative notes).
 
-QUESTION:
-{question}
+Never present internal documents as established fact.
+
+OUTPUT SECTIONS:
+
+• Established Scientific Facts
+• Facts About Article / Topic
+• Internal Speculative Notes
+• Unknowns / Limits
 
 ARTICLE:
 {article_text}
 
-INTERNAL DOCUMENTS (UNVERIFIED):
-{chr(10).join(retrieved_docs)}
+QUESTION:
+{question}
 
-Return:
-
-• Established Scientific Facts
-• Article Findings
-• Unverified Internal Notes
-• Unknowns / Limits
+INTERNAL DOCUMENT NOTES:
+{doc_context}
 
 Bullet points only.
+No speculation.
 """
 
     response = client.chat.completions.create(
         model="gpt-4.1-mini",
         temperature=0,
         messages=[
-            {"role": "system", "content": "Scientific fact extraction only."},
+            {"role": "system", "content": "Fact analysis only."},
             {"role": "user", "content": prompt},
         ],
     )
 
     return {
+        "status": "success",
         "analysis": response.choices[0].message.content,
         "documents_used": len(retrieved_docs)
     }
