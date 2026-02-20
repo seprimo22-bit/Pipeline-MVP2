@@ -1,104 +1,100 @@
-from flask import Flask, request, jsonify, render_template
 import os
+from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
+from rag_engine import search_documents
 
 app = Flask(__name__)
 
-# -----------------------------
-# OPENAI SETUP
-# -----------------------------
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Load OpenAI key safely
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# -----------------------------
-# STEP 1 — FACT EXTRACTION
-# -----------------------------
-def extract_article_facts(article_text):
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY not found in environment variables.")
 
-    prompt = f"""
-Extract ONLY factual statements from this article.
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-Rules:
-- No opinions
-- No interpretation
-- No summary
-- Just measurable or stated facts
 
-ARTICLE:
-{article_text}
+# ----------------------------
+# FACT EXTRACTION PROMPT
+# ----------------------------
+
+def build_prompt(question, article_text=None):
+
+    instructions = """
+You are a scientific fact extraction engine.
+
+Strict rules:
+- Extract measurable, verifiable, testable facts only.
+- No summaries.
+- No opinions.
+- No speculation.
+- No narrative language.
+- Return structured output under these headings:
+
+1. Established Scientific Facts
+2. Article-Supported Facts
+3. Unknowns or Unverified Claims
+
+Respond in plain text.
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2
-    )
+    if article_text:
+        return f"""{instructions}
 
-    return response.choices[0].message.content
+QUESTION:
+{question}
 
+ARTICLE TEXT:
+{article_text[:10000]}
+"""
+    else:
+        return f"""{instructions}
 
-# -----------------------------
-# STEP 2 — META ANALYSIS
-# -----------------------------
-def analyze_article(facts):
-
-    prompt = f"""
-Analyze this set of extracted facts about a scientific article.
-
-Do NOT repeat the article.
-Do NOT summarize.
-
-Provide factual analysis about:
-
-- Type of publication
-- Strength of evidence
-- Novelty level
-- Presence of experimental validation
-- Risk of bias
-- Real-world applicability
-- Limitations visible from facts
-
-FACTS:
-{facts}
+QUESTION:
+{question}
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
 
-    return response.choices[0].message.content
-
-
-# -----------------------------
+# ----------------------------
 # ROUTES
-# -----------------------------
+# ----------------------------
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-@app.route("/analyze", methods=["POST"])
-def analyze():
+@app.route("/ask", methods=["POST"])
+def ask():
 
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    if not data or "article" not in data:
-        return jsonify({"error": "No article provided"}), 400
+        if not data or "question" not in data:
+            return jsonify({"error": "No question provided"}), 400
 
-    article = data["article"]
+        question = data["question"]
+        article = data.get("article")
 
-    # STEP 1
-    facts = extract_article_facts(article)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": build_prompt(question, article)}
+            ],
+            temperature=0
+        )
 
-    # STEP 2
-    meta = analyze_article(facts)
+        ai_output = response.choices[0].message.content
 
-    return jsonify({
-        "extracted_facts": facts,
-        "analysis_about_article": meta
-    })
+        private_hits = search_documents(question)
+
+        return jsonify({
+            "fact_analysis": ai_output,
+            "private_document_matches": private_hits
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
