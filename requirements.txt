@@ -1,8 +1,9 @@
 flask
+gunicorn
 openai
 PyPDF2
 numpy
 scikit-learn
-gunicorn
 jinja2
 python-dotenv
+requests
