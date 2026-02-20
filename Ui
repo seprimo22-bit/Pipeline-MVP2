@@ -5,35 +5,44 @@
 
 <style>
 body{
- font-family: Arial;
- max-width:900px;
- margin:auto;
- padding:30px;
- background:#f4f6f8;
+    font-family: Arial, sans-serif;
+    max-width:900px;
+    margin:auto;
+    padding:30px;
+    background:#f4f6f8;
 }
 
-h1{text-align:center;}
+h1{
+    text-align:center;
+}
 
-input{
- width:70%;
- padding:12px;
- font-size:16px;
+textarea{
+    width:100%;
+    padding:12px;
+    font-size:15px;
+    margin-bottom:15px;
 }
 
 button{
- padding:12px 20px;
- background:#2e7dff;
- color:white;
- border:none;
- border-radius:6px;
+    padding:12px 20px;
+    background:#2e7dff;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1b5edb;
 }
 
 #answer{
- margin-top:25px;
- padding:20px;
- background:white;
- border-radius:8px;
- white-space:pre-wrap;
+    margin-top:25px;
+    padding:20px;
+    background:white;
+    border-radius:8px;
+    white-space:pre-wrap;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 </style>
 </head>
@@ -42,28 +51,50 @@ button{
 
 <h1>Campbell Cognitive Pipeline</h1>
 
-<input id="question" placeholder="Ask something">
-<button onclick="ask()">Ask</button>
+<h3>Ask a Question (Facts Only)</h3>
+<textarea id="question" rows="4"
+placeholder="Example: What facts exist about Titan A17?"></textarea>
+
+<h3>Optional Article Analyzer</h3>
+<textarea id="article" rows="10"
+placeholder="Paste article text here if you want analysis..."></textarea>
+
+<button onclick="ask()">Run Analysis</button>
 
 <div id="answer"></div>
 
 <script>
 async function ask(){
 
- const q=document.getElementById("question").value;
+    const q = document.getElementById("question").value;
+    const article = document.getElementById("article").value;
 
- document.getElementById("answer").innerText="Thinking...";
+    document.getElementById("answer").innerText = "Running analysis...";
 
- const res=await fetch("/ask",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({question:q})
- });
+    try{
+        const res = await fetch("/ask",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({
+                question:q,
+                article:article
+            })
+        });
 
- const data=await res.json();
+        const data = await res.json();
 
- document.getElementById("answer").innerText =
-  JSON.stringify(data,null,2);
+        // Display clean output
+        if(data.analysis){
+            document.getElementById("answer").innerText = data.analysis;
+        } else {
+            document.getElementById("answer").innerText =
+                JSON.stringify(data,null,2);
+        }
+
+    }catch(err){
+        document.getElementById("answer").innerText =
+            "Error contacting server.";
+    }
 }
 </script>
 
