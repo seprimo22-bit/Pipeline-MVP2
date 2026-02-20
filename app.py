@@ -1,9 +1,8 @@
 import os
-from flask import Flask, render_template, request
-from openai import OpenAI
+from flask import Flask, request, jsonify, render_template
+from rag_engine import extract_article_facts
 
 app = Flask(__name__)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def extract_article_facts(article_text, question=None):
 
@@ -57,4 +56,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000)
