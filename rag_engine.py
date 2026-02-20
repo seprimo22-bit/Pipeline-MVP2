@@ -9,17 +9,16 @@ except:
 
 DOCUMENT_FOLDER = "documents"
 
-# Words that cause garbage matches
 STOPWORDS = {
     "the","a","an","is","are","of","to","and","in",
     "on","for","with","this","that","it","as","at",
     "be","by","from","or"
 }
 
+
 # ---------------------------
 # TEXT EXTRACTION
 # ---------------------------
-
 def read_text_file(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -29,6 +28,7 @@ def read_text_file(path):
 
 
 def read_pdf_file(path):
+
     if not PyPDF2:
         return ""
 
@@ -47,8 +47,8 @@ def read_pdf_file(path):
 # ---------------------------
 # LOAD DOCUMENTS ONCE
 # ---------------------------
-
 def load_documents():
+
     docs = []
 
     for path in glob.glob(f"{DOCUMENT_FOLDER}/**/*", recursive=True):
@@ -79,15 +79,13 @@ DOCUMENT_CACHE = load_documents()
 
 
 # ---------------------------
-# SMART DOCUMENT SEARCH
+# SMART SEARCH
 # ---------------------------
-
 def search_documents(question):
 
     if not DOCUMENT_CACHE:
         return []
 
-    # Remove stopwords
     q_words = [
         w.lower() for w in question.split()
         if w.lower() not in STOPWORDS and len(w) > 2
@@ -102,19 +100,13 @@ def search_documents(question):
             if word in doc["content"]
         )
 
-        # Require stronger match
         if score >= 3:
             results.append({
                 "file": doc["file"],
                 "score": score,
-                "snippet": "Relevant document identified (content hidden for privacy)."
+                "snippet": "Relevant document identified."
             })
 
-    # Sort best first
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    # Only return if confident
-    if results and results[0]["score"] >= 4:
-        return results[:3]
-
-    return []
+    return results[:3]
