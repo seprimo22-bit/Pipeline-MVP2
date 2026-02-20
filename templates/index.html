@@ -1,28 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Campbell Fact Cognitive Pipeline</title>
+<title>Campbell Cognitive Pipeline</title>
+<style>
+body {font-family: Arial; margin:40px;}
+textarea {width:100%; height:140px;}
+.result {background:#eee; padding:15px; margin-top:20px;}
+button {padding:10px 20px;}
+</style>
 </head>
 <body>
 
-<h2>Campbell Fact Cognitive Pipeline</h2>
+<h1>Campbell Cognitive Pipeline</h1>
 
 <form method="POST">
-    <p>Question:</p>
-    <textarea name="question" rows="4" cols="80"></textarea>
 
-    <p>Optional Article Text:</p>
-    <textarea name="article_text" rows="10" cols="80"></textarea>
+<h3>Ask a Question</h3>
+<textarea name="question"></textarea>
 
-    <br><br>
-    <button type="submit">Run Fact Extraction</button>
+<h3>Paste Article</h3>
+<textarea name="article"></textarea>
+
+<br><br>
+<button type="submit">Run Analysis</button>
+
 </form>
 
-{% if result %}
-<hr>
-<h3>Result:</h3>
+<div class="result">
 <pre>{{ result }}</pre>
-{% endif %}
+</div>
 
 </body>
 </html>
