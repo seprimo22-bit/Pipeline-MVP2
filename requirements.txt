@@ -1,6 +1,5 @@
 flask
 openai
-PyPDF2
 gunicorn
-jinja2
 python-dotenv
+PyPDF2
