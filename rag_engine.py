@@ -1,79 +1,63 @@
 import os
-import glob
-from pathlib import Path
+from openai import OpenAI
 
-try:
-    import PyPDF2
-except:
-    PyPDF2 = None
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-DOCUMENT_FOLDER = "documents"
 
-STOPWORDS = {
-    "the","a","an","is","are","of","to","and","in",
-    "on","for","with","this","that","it","as","at",
-    "be","by","from","or"
-}
+def extract_article_facts(article_text, question=None):
+    """
+    Extract facts ONLY from article text.
+    Question is used ONLY to guide relevance,
+    not as a source of facts.
+    """
 
-def read_text_file(path):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read().lower()
-    except:
-        return ""
+    if not article_text or len(article_text.strip()) < 50:
+        return {
+            "established_facts": [],
+            "article_facts": [],
+            "unknowns": ["No article text provided or text too short."]
+        }
 
-def read_pdf_file(path):
-    if not PyPDF2:
-        return ""
-    text = ""
-    try:
-        with open(path, "rb") as f:
-            reader = PyPDF2.PdfReader(f)
-            for page in reader.pages:
-                text += page.extract_text() or ""
-    except:
-        pass
-    return text.lower()
+    prompt = f"""
+You are a FACT EXTRACTION ENGINE.
 
-def load_documents():
-    docs = []
-    for path in glob.glob(f"{DOCUMENT_FOLDER}/**/*", recursive=True):
-        if os.path.isdir(path):
-            continue
-        ext = Path(path).suffix.lower()
-        if ext == ".pdf":
-            content = read_pdf_file(path)
-        elif ext in [".txt", ".md"]:
-            content = read_text_file(path)
-        else:
-            continue
-        if content.strip():
-            docs.append({
-                "file": os.path.basename(path),
-                "content": content
-            })
-    return docs
+STRICT RULES:
+1. ONLY extract facts explicitly stated in the article text.
+2. DO NOT invent, infer, or hypothesize.
+3. DO NOT answer the user's question directly.
+4. The question is ONLY for context relevance.
+5. Separate facts into 3 categories:
 
-DOCUMENT_CACHE = load_documents()
+- Established Scientific Facts:
+  Widely accepted scientific facts referenced.
 
-def search_documents(question):
-    if not DOCUMENT_CACHE:
-        return []
+- Article-Specific Facts:
+  Claims or findings stated directly in this article.
 
-    words = [
-        w.lower() for w in question.split()
-        if w.lower() not in STOPWORDS and len(w) > 3
-    ]
+- Unknowns / Limits:
+  What the article does NOT prove,
+  assumptions, missing info, or uncertainty.
 
-    results = []
+USER QUESTION (context only):
+{question if question else "None"}
 
-    for doc in DOCUMENT_CACHE:
-        score = sum(1 for w in words if w in doc["content"])
-        if score >= 3:
-            results.append({
-                "file": doc["file"],
-                "score": score
-            })
+ARTICLE TEXT:
+{article_text}
 
-    results.sort(key=lambda x: x["score"], reverse=True)
-    return results[:3]
+Return clean bullet points.
+No commentary.
+No explanation.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "Fact extraction only."},
+            {"role": "user", "content": prompt},
+        ],
+    )
+
+    text = response.choices[0].message.content
+
+    return {"raw_output": text}
