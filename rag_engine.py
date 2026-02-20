@@ -1,154 +1,190 @@
 import os
 import numpy as np
-import PyPDF2
+from flask import Flask, request, render_template_string
 from openai import OpenAI
+
+# ------------------------------------
+# CONFIG
+# ------------------------------------
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-DOC_FOLDER = "documents"
-DOCUMENT_CHUNKS = []
+DOC_FOLDER = "docs"  # put your reference docs here
+EMBED_MODEL = "text-embedding-3-small"
+CHAT_MODEL = "gpt-4o-mini"
 
+app = Flask(__name__)
 
-# -------------------------
-# Extract text from PDFs/TXT
-# -------------------------
-def extract_text(path):
-    try:
-        if path.lower().endswith(".pdf"):
-            text = ""
-            with open(path, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-                for page in reader.pages:
-                    text += page.extract_text() or ""
-            return text
+# ------------------------------------
+# SIMPLE DOCUMENT RAG INDEX
+# ------------------------------------
 
-        elif path.lower().endswith(".txt"):
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read()
+doc_texts = []
+doc_vectors = []
 
-    except Exception as e:
-        print("Doc read error:", e)
+def load_docs():
+    global doc_texts, doc_vectors
 
-    return ""
-
-
-# -------------------------
-# Chunk documents
-# -------------------------
-def chunk_text(text, size=800):
-    words = text.split()
-    chunks = []
-    for i in range(0, len(words), size):
-        chunk = " ".join(words[i:i+size])
-        if len(chunk) > 100:
-            chunks.append(chunk)
-    return chunks
-
-
-# -------------------------
-# Load documents ONCE
-# -------------------------
-def load_documents():
     if not os.path.exists(DOC_FOLDER):
-        print("Documents folder missing.")
         return
 
-    for file in os.listdir(DOC_FOLDER):
-        path = os.path.join(DOC_FOLDER, file)
-        text = extract_text(path)
+    for f in os.listdir(DOC_FOLDER):
+        path = os.path.join(DOC_FOLDER, f)
+        if not f.endswith(".txt"):
+            continue
 
-        if text:
-            DOCUMENT_CHUNKS.extend(chunk_text(text))
+        text = open(path, "r", encoding="utf-8").read()
+        emb = client.embeddings.create(
+            model=EMBED_MODEL,
+            input=text[:8000]
+        ).data[0].embedding
 
-    print(f"Loaded {len(DOCUMENT_CHUNKS)} document chunks.")
+        doc_texts.append(text)
+        doc_vectors.append(np.array(emb))
 
-
-load_documents()
-
-
-# -------------------------
-# Embedding helper
-# -------------------------
-def embed(text):
-    response = client.embeddings.create(
-        model="text-embedding-3-large",
-        input=text[:8000]
-    )
-    return np.array(response.data[0].embedding, dtype="float32")
+load_docs()
 
 
-# -------------------------
-# Retrieve relevant docs
-# -------------------------
-def retrieve_docs(query, k=3):
+def search_docs(query):
+    if not doc_vectors:
+        return ""
 
-    if not DOCUMENT_CHUNKS or not query:
-        return []
+    q_emb = client.embeddings.create(
+        model=EMBED_MODEL,
+        input=query
+    ).data[0].embedding
 
-    qvec = embed(query)
+    q_vec = np.array(q_emb)
 
-    scores = []
-    for chunk in DOCUMENT_CHUNKS:
-        dvec = embed(chunk)
-        similarity = np.dot(qvec, dvec) / (
-            np.linalg.norm(qvec) * np.linalg.norm(dvec)
-        )
-        scores.append((similarity, chunk))
+    sims = [np.dot(q_vec, v) / (np.linalg.norm(v) * np.linalg.norm(q_vec))
+            for v in doc_vectors]
 
-    scores.sort(reverse=True)
-    return [s[1] for s in scores[:k]]
+    best_idx = int(np.argmax(sims))
+    return doc_texts[best_idx][:3000]
 
 
-# -------------------------
-# Main pipeline
-# -------------------------
-def run_fact_pipeline(article_text="", question=""):
+# ------------------------------------
+# CORE PIPELINE
+# ------------------------------------
 
-    retrieved_docs = retrieve_docs(question)
-    doc_context = "\n\n".join(retrieved_docs)
+def run_pipeline(question=None, article=None):
+    question = (question or "").strip()
+    article = (article or "").strip()
 
-    prompt = f"""
+    doc_context = search_docs(question) if question else ""
+
+    system_prompt = """
 You are a factual analysis engine.
 
-ORDER OF EVIDENCE:
+Rules:
+- Return factual information only.
+- No filler.
+- Distinguish known facts vs inference.
+- When analyzing articles, evaluate claims
+  against general knowledge.
+"""
 
-1. General scientific knowledge FIRST.
-2. Article analysis SECOND.
-3. Internal documents LAST (treat as speculative notes).
-
-Never present internal documents as established fact.
-
-OUTPUT SECTIONS:
-
-• Established Scientific Facts
-• Facts About Article / Topic
-• Internal Speculative Notes
-• Unknowns / Limits
-
-ARTICLE:
-{article_text}
-
+    if question and not article:
+        user_prompt = f"""
 QUESTION:
 {question}
 
-INTERNAL DOCUMENT NOTES:
+REFERENCE DOC CONTEXT:
 {doc_context}
 
-Bullet points only.
-No speculation.
+Return factual information relevant to the question.
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        temperature=0,
+    elif article and not question:
+        user_prompt = f"""
+ARTICLE:
+{article}
+
+Analyze the article objectively.
+Return facts ABOUT the claims, not just a summary.
+"""
+
+    elif question and article:
+        user_prompt = f"""
+QUESTION:
+{question}
+
+ARTICLE:
+{article}
+
+REFERENCE DOC CONTEXT:
+{doc_context}
+
+Analyze both together.
+Extract facts, evaluate claims, and connect them.
+"""
+
+    else:
+        return "Enter a question, an article, or both."
+
+    resp = client.chat.completions.create(
+        model=CHAT_MODEL,
         messages=[
-            {"role": "system", "content": "Fact analysis only."},
-            {"role": "user", "content": prompt},
-        ],
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
     )
 
-    return {
-        "status": "success",
-        "analysis": response.choices[0].message.content,
-        "documents_used": len(retrieved_docs)
-    }
+    return resp.choices[0].message.content
+
+
+# ------------------------------------
+# UI + ROUTE
+# ------------------------------------
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+
+    result = ""
+
+    if request.method == "POST":
+        q = request.form.get("question")
+        a = request.form.get("article")
+        result = run_pipeline(q, a)
+
+    return render_template_string("""
+<html>
+<head>
+<title>Campbell Cognitive Pipeline</title>
+<style>
+body {font-family: Arial; margin:40px;}
+textarea {width:100%; height:140px;}
+.result {background:#eee; padding:15px; margin-top:20px;}
+button {padding:10px 20px;}
+</style>
+</head>
+<body>
+
+<h1>Campbell Cognitive Pipeline</h1>
+
+<form method="POST">
+
+<h3>Ask a Question</h3>
+<textarea name="question"
+placeholder="Ask something factual..."></textarea>
+
+<h3>Paste Article (Optional)</h3>
+<textarea name="article"
+placeholder="Paste article text for analysis..."></textarea>
+
+<br><br>
+<button type="submit">Run Analysis</button>
+
+</form>
+
+<div class="result">
+<pre>{{result}}</pre>
+</div>
+
+</body>
+</html>
+""", result=result)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
