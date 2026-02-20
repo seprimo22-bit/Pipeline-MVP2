@@ -9,10 +9,17 @@ except:
 
 DOCUMENT_FOLDER = "documents"
 
+# Words that cause garbage matches
+STOPWORDS = {
+    "the","a","an","is","are","of","to","and","in",
+    "on","for","with","this","that","it","as","at",
+    "be","by","from","or"
+}
 
 # ---------------------------
 # TEXT EXTRACTION
 # ---------------------------
+
 def read_text_file(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -38,8 +45,9 @@ def read_pdf_file(path):
 
 
 # ---------------------------
-# DOCUMENT CACHE (LOAD ONCE)
+# LOAD DOCUMENTS ONCE
 # ---------------------------
+
 def load_documents():
     docs = []
 
@@ -60,9 +68,10 @@ def load_documents():
         if content.strip():
             docs.append({
                 "file": os.path.basename(path),
-                "content": content
+                "content": content.lower()
             })
 
+    print(f"Loaded {len(docs)} private documents.")
     return docs
 
 
@@ -70,28 +79,42 @@ DOCUMENT_CACHE = load_documents()
 
 
 # ---------------------------
-# SEARCH FUNCTION
+# SMART DOCUMENT SEARCH
 # ---------------------------
+
 def search_documents(question):
 
-    q_words = question.lower().split()
+    if not DOCUMENT_CACHE:
+        return []
+
+    # Remove stopwords
+    q_words = [
+        w.lower() for w in question.split()
+        if w.lower() not in STOPWORDS and len(w) > 2
+    ]
+
     results = []
 
     for doc in DOCUMENT_CACHE:
 
-        text = doc["content"].lower()
-
         score = sum(
-            1 for word in q_words if word in text
+            1 for word in q_words
+            if word in doc["content"]
         )
 
-        if score > 0:
+        # Require stronger match
+        if score >= 3:
             results.append({
                 "file": doc["file"],
                 "score": score,
-                "snippet": doc["content"][:500]
+                "snippet": "Relevant document identified (content hidden for privacy)."
             })
 
+    # Sort best first
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    return results[:3]
+    # Only return if confident
+    if results and results[0]["score"] >= 4:
+        return results[:3]
+
+    return []
