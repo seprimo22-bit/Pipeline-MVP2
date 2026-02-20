@@ -18,40 +18,39 @@ def run_pipeline(question=None, article=None):
     question = (question or "").strip()
     article = (article or "").strip()
 
-    doc_context = search_docs(question) if question else ""
+    combined_input = question + "\n" + article
 
-    system = """
-You are a factual analysis engine.
+    doc_context = search_docs(combined_input) if combined_input.strip() else ""
+
+    system_prompt = """
+You are a constraint-based factual analysis engine.
+
+You MUST structure output in exactly these sections:
+
+FACTS FROM INPUT:
+- Explicit statements found in the question or article.
+
+FACTS ABOUT INPUT:
+- Independently verifiable domain facts.
+- Do not restate the article.
+
+DOCUMENT MATCHES:
+- Only direct factual matches from indexed documents.
+- If none, say: No direct document match found.
+
+RELATIONSHIP STATUS:
+- Direct relationship confirmed
+- Possible but unverified overlap
+- No relationship found
 
 Rules:
-- Return factual information only.
-- No filler or mode labels.
-- Evaluate claims objectively.
-- Integrate document evidence when relevant.
+- Do NOT speculate.
+- Do NOT suggest future applications.
+- Do NOT use narrative language.
+- If no connection exists, explicitly say so.
 """
 
-    if question and not article:
-        user = f"""
-QUESTION:
-{question}
-
-DOCUMENT CONTEXT:
-{doc_context}
-
-Return factual information answering the question.
-"""
-
-    elif article and not question:
-        user = f"""
-ARTICLE:
-{article}
-
-Analyze objectively.
-Return facts about claims, validity, and context.
-"""
-
-    elif question and article:
-        user = f"""
+    user_prompt = f"""
 QUESTION:
 {question}
 
@@ -60,22 +59,21 @@ ARTICLE:
 
 DOCUMENT CONTEXT:
 {doc_context}
-
-Analyze all sources together.
 """
 
-    else:
+    if not combined_input.strip():
         return "Enter a question, article, or both."
 
-    resp = client.chat.completions.create(
+    response = client.chat.completions.create(
         model=CHAT_MODEL,
+        temperature=0,
         messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ]
     )
 
-    return resp.choices[0].message.content
+    return response.choices[0].message.content
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -92,4 +90,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True),
