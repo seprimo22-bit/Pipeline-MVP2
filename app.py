@@ -23,7 +23,7 @@ def ask():
 
         return jsonify({
             "fact_analysis": result.get("raw_output", ""),
-            "private_document_matches": []
+            "private_document_matches": result.get("document_matches", [])
         })
 
     except Exception as e:
