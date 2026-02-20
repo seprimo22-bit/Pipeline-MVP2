@@ -9,6 +9,7 @@ except:
 
 DOCUMENT_FOLDER = "documents"
 
+# Words that cause garbage matches
 STOPWORDS = {
     "the","a","an","is","are","of","to","and","in",
     "on","for","with","this","that","it","as","at",
@@ -22,13 +23,12 @@ STOPWORDS = {
 def read_text_file(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return f.read()
+            return f.read().lower()
     except:
         return ""
 
 
 def read_pdf_file(path):
-
     if not PyPDF2:
         return ""
 
@@ -37,7 +37,9 @@ def read_pdf_file(path):
         with open(path, "rb") as f:
             reader = PyPDF2.PdfReader(f)
             for page in reader.pages:
-                text += page.extract_text() or ""
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted.lower()
     except:
         pass
 
@@ -48,7 +50,6 @@ def read_pdf_file(path):
 # LOAD DOCUMENTS ONCE
 # ---------------------------
 def load_documents():
-
     docs = []
 
     for path in glob.glob(f"{DOCUMENT_FOLDER}/**/*", recursive=True):
@@ -68,7 +69,7 @@ def load_documents():
         if content.strip():
             docs.append({
                 "file": os.path.basename(path),
-                "content": content.lower()
+                "content": content
             })
 
     print(f"Loaded {len(docs)} private documents.")
@@ -79,32 +80,36 @@ DOCUMENT_CACHE = load_documents()
 
 
 # ---------------------------
-# SMART SEARCH
+# DOCUMENT SEARCH
 # ---------------------------
 def search_documents(question):
 
     if not DOCUMENT_CACHE:
         return []
 
+    # Clean query words
     q_words = [
         w.lower() for w in question.split()
         if w.lower() not in STOPWORDS and len(w) > 2
     ]
 
+    if not q_words:
+        return []
+
     results = []
 
     for doc in DOCUMENT_CACHE:
-
         score = sum(
             1 for word in q_words
             if word in doc["content"]
         )
 
-        if score >= 3:
+        # Require at least minimal relevance
+        if score >= 2:
             results.append({
                 "file": doc["file"],
                 "score": score,
-                "snippet": "Relevant document identified."
+                "snippet": "Relevant document identified (content hidden for privacy)."
             })
 
     results.sort(key=lambda x: x["score"], reverse=True)
