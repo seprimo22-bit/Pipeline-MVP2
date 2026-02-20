@@ -1,71 +1,54 @@
 import os
+import faiss
 import numpy as np
-from openai import OpenAI
-import PyPDF2
+from sentence_transformers import SentenceTransformer
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+class RAGEngine:
 
-EMBED_MODEL = "text-embedding-3-small"
-DOC_FOLDER = "documents"
+    def __init__(self, index_path="vector.index"):
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.index_path = index_path
+        self.index = None
+        self.documents = []
 
-doc_chunks = []
-doc_vectors = []
+        if os.path.exists(index_path):
+            self.load_index()
 
+    # -----------------------------
+    # BUILD INDEX
+    # -----------------------------
+    def build_index(self, documents):
+        """
+        documents: list of text chunks
+        """
+        self.documents = documents
+        embeddings = self.model.encode(documents)
 
-def extract_text(path):
-    if path.endswith(".pdf"):
-        text = ""
-        reader = PyPDF2.PdfReader(path)
-        for page in reader.pages:
-            text += page.extract_text() or ""
-        return text
-    else:
-        with open(path, encoding="utf-8") as f:
-            return f.read()
+        dimension = embeddings.shape[1]
+        self.index = faiss.IndexFlatL2(dimension)
+        self.index.add(np.array(embeddings))
 
+        faiss.write_index(self.index, self.index_path)
 
-def build_index():
-    global doc_chunks, doc_vectors
+    # -----------------------------
+    # LOAD EXISTING INDEX
+    # -----------------------------
+    def load_index(self):
+        self.index = faiss.read_index(self.index_path)
 
-    if not os.path.exists(DOC_FOLDER):
-        return
+    # -----------------------------
+    # RETRIEVE TOP MATCHES
+    # -----------------------------
+    def retrieve(self, query, top_k=3):
+        if self.index is None:
+            return []
 
-    for f in os.listdir(DOC_FOLDER):
-        path = os.path.join(DOC_FOLDER, f)
+        query_embedding = self.model.encode([query])
+        distances, indices = self.index.search(np.array(query_embedding), top_k)
 
-        if not f.endswith((".txt", ".pdf")):
-            continue
+        results = []
+        for idx in indices[0]:
+            if idx < len(self.documents):
+                results.append(self.documents[idx])
 
-        text = extract_text(path)
-
-        chunks = [text[i:i+1500] for i in range(0, len(text), 1500)]
-
-        for chunk in chunks:
-            emb = client.embeddings.create(
-                model=EMBED_MODEL,
-                input=chunk
-            ).data[0].embedding
-
-            doc_chunks.append(chunk)
-            doc_vectors.append(np.array(emb))
-
-
-def search_docs(query):
-    if not doc_vectors:
-        return ""
-
-    q_emb = client.embeddings.create(
-        model=EMBED_MODEL,
-        input=query
-    ).data[0].embedding
-
-    q_vec = np.array(q_emb)
-
-    sims = [
-        np.dot(q_vec, v) /
-        (np.linalg.norm(q_vec) * np.linalg.norm(v))
-        for v in doc_vectors
-    ]
-
-    best = np.argsort(sims)[-3:]
-    return "\n\n".join(doc_chunks[i] for i in best)
+        return results
