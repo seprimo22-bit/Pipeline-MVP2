@@ -5,37 +5,27 @@
 
 <style>
 body{
- font-family: Arial, sans-serif;
+ font-family: Arial;
  max-width:900px;
  margin:auto;
  padding:30px;
  background:#f4f6f8;
 }
 
-h1{
- text-align:center;
-}
+h1{text-align:center;}
 
 input{
- width:75%;
+ width:70%;
  padding:12px;
  font-size:16px;
- border-radius:6px;
- border:1px solid #ccc;
 }
 
 button{
- padding:12px 18px;
- font-size:16px;
- border-radius:6px;
- border:none;
+ padding:12px 20px;
  background:#2e7dff;
  color:white;
- cursor:pointer;
-}
-
-button:hover{
- background:#1b5ed6;
+ border:none;
+ border-radius:6px;
 }
 
 #answer{
@@ -43,8 +33,6 @@ button:hover{
  padding:20px;
  background:white;
  border-radius:8px;
- line-height:1.6;
- box-shadow:0 2px 8px rgba(0,0,0,0.08);
  white-space:pre-wrap;
 }
 </style>
@@ -54,34 +42,28 @@ button:hover{
 
 <h1>Campbell Cognitive Pipeline</h1>
 
-<input id="question" placeholder="Ask something..." />
-<button onclick="askQuestion()">Ask</button>
+<input id="question" placeholder="Ask something">
+<button onclick="ask()">Ask</button>
 
 <div id="answer"></div>
 
 <script>
-async function askQuestion(){
+async function ask(){
 
  const q=document.getElementById("question").value;
 
  document.getElementById("answer").innerText="Thinking...";
 
- try{
-  const res=await fetch("/ask",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({question:q})
-  });
+ const res=await fetch("/ask",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({question:q})
+ });
 
-  const data=await res.json();
+ const data=await res.json();
 
-  document.getElementById("answer").innerText=
-   data.answer || data.error;
-
- }catch(err){
-  document.getElementById("answer").innerText=
-   "Pipeline connection error.";
- }
+ document.getElementById("answer").innerText =
+  JSON.stringify(data,null,2);
 }
 </script>
 
