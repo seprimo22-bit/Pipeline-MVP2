@@ -20,14 +20,19 @@ def extract_text(path):
             text += page.extract_text() or ""
         return text
     else:
-        return open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as f:
+            return f.read()
 
 
 def build_index():
     global doc_chunks, doc_vectors
 
+    if not os.path.exists(DOC_FOLDER):
+        return
+
     for f in os.listdir(DOC_FOLDER):
         path = os.path.join(DOC_FOLDER, f)
+
         if not f.endswith((".txt", ".pdf")):
             continue
 
@@ -56,9 +61,11 @@ def search_docs(query):
 
     q_vec = np.array(q_emb)
 
-    sims = [np.dot(q_vec, v) /
-            (np.linalg.norm(q_vec) * np.linalg.norm(v))
-            for v in doc_vectors]
+    sims = [
+        np.dot(q_vec, v) /
+        (np.linalg.norm(q_vec) * np.linalg.norm(v))
+        for v in doc_vectors
+    ]
 
     best = np.argsort(sims)[-3:]
     return "\n\n".join(doc_chunks[i] for i in best)
