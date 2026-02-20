@@ -1,47 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Pipeline Article Analyzer</title>
+<title>Campbell Fact Pipeline</title>
+<style>
+body { font-family: Arial; max-width: 900px; margin: auto; padding: 30px; }
+textarea { width: 100%; height: 150px; margin-top: 10px; }
+button { margin-top: 10px; padding: 10px 15px; }
+pre { background: #f4f4f4; padding: 15px; white-space: pre-wrap; }
+</style>
 </head>
-
 <body>
 
-<h2>Campbell Pipeline — Article Analysis</h2>
+<h2>Campbell Fact Cognitive Pipeline</h2>
 
-<textarea id="article" rows="15" cols="80"
-placeholder="Paste article here..."></textarea>
+<label>Question:</label>
+<textarea id="question"></textarea>
 
-<br><br>
+<label>Optional Article Text:</label>
+<textarea id="article"></textarea>
 
-<button onclick="analyze()">Analyze Article</button>
+<button onclick="ask()">Run Fact Extraction</button>
 
-<pre id="result"></pre>
+<pre id="output"></pre>
 
 <script>
-async function analyze(){
+async function ask() {
 
-    const article =
-        document.getElementById("article").value;
+    const question = document.getElementById("question").value;
+    const article = document.getElementById("article").value;
 
-    document.getElementById("result").innerText =
-        "Processing...";
+    document.getElementById("output").innerText = "Processing...";
 
-    const res = await fetch("/analyze", {
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body: JSON.stringify({article})
-    });
+    try {
+        const res = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                question: question,
+                article: article
+            })
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    document.getElementById("result").innerText =
-        "FACTS:\n\n" +
-        data.extracted_facts +
-        "\n\n-----------------\n\n" +
-        "ANALYSIS ABOUT ARTICLE:\n\n" +
-        data.analysis_about_article;
+        document.getElementById("output").innerText =
+            data.fact_analysis +
+            "\n\nPrivate Document Matches:\n" +
+            JSON.stringify(data.private_document_matches, null, 2);
+
+    } catch (err) {
+        document.getElementById("output").innerText = "Error occurred.";
+    }
 }
 </script>
 
