@@ -7,35 +7,33 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 DOC_FOLDER = "documents"
-INDEX_FILE = "doc_index.faiss"
-DOC_STORE = "doc_store.npy"
+
+# Global storage
+index = None
+docs = []
 
 
 # -------------------------
 # TEXT EXTRACTION
 # -------------------------
 def extract_text(path):
+    text = ""
     try:
         if path.lower().endswith(".pdf"):
-            text = ""
             with open(path, "rb") as f:
                 reader = PyPDF2.PdfReader(f)
                 for page in reader.pages:
                     text += page.extract_text() or ""
-            return text
-
         elif path.lower().endswith(".txt"):
             with open(path, "r", encoding="utf-8") as f:
-                return f.read()
-
+                text = f.read()
     except Exception as e:
         print("Document read error:", e)
-
-    return ""
+    return text
 
 
 # -------------------------
-# EMBEDDINGS
+# EMBEDDING
 # -------------------------
 def embed(text):
     response = client.embeddings.create(
@@ -46,16 +44,20 @@ def embed(text):
 
 
 # -------------------------
-# BUILD INDEX IF NEEDED
+# BUILD INDEX EVERY STARTUP
 # -------------------------
 def build_index():
+    global index, docs
+
+    print("Building document index...")
 
     docs = []
     vectors = []
 
     if not os.path.exists(DOC_FOLDER):
-        print("Documents folder missing.")
-        return None, []
+        print("Documents folder not found.")
+        index = None
+        return
 
     for file in os.listdir(DOC_FOLDER):
         path = os.path.join(DOC_FOLDER, file)
@@ -66,81 +68,71 @@ def build_index():
             vectors.append(embed(text))
 
     if not vectors:
-        return None, []
+        print("No documents indexed.")
+        index = None
+        return
 
     dim = len(vectors[0])
     index = faiss.IndexFlatL2(dim)
     index.add(np.array(vectors))
 
-    faiss.write_index(index, INDEX_FILE)
-    np.save(DOC_STORE, docs)
-
-    print("Document index built.")
-    return index, docs
+    print(f"Indexed {len(docs)} documents.")
 
 
-# LOAD OR BUILD INDEX
-if os.path.exists(INDEX_FILE):
-    index = faiss.read_index(INDEX_FILE)
-    docs = np.load(DOC_STORE, allow_pickle=True).tolist()
-else:
-    index, docs = build_index()
+# Build on import
+build_index()
 
 
 # -------------------------
-# DOCUMENT RETRIEVAL
+# RETRIEVE DOCS
 # -------------------------
 def retrieve_docs(query, k=3):
-
     if index is None or not query:
         return []
 
     qvec = embed(query).reshape(1, -1)
     D, I = index.search(qvec, k)
 
-    matches = []
+    results = []
     for i in I[0]:
         if i < len(docs):
-            matches.append(docs[i][:2000])
+            results.append(docs[i][:2000])
 
-    return matches
+    return results
 
 
 # -------------------------
-# MAIN FACT PIPELINE
+# MAIN PIPELINE
 # -------------------------
 def run_fact_pipeline(article_text, question=None):
 
     retrieved_docs = retrieve_docs(question or "")
 
-    doc_context = "\n\n".join(retrieved_docs)
-
     prompt = f"""
 You are a scientific fact extraction engine.
 
-ORDER OF EVIDENCE:
+EVIDENCE ORDER:
+1. Established science first.
+2. Article text second.
+3. Internal documents last (treat as unverified).
 
-1. Established scientific knowledge FIRST.
-2. Article text SECOND.
-3. Internal documents LAST (treat as unverified notes).
+Never treat internal documents as confirmed fact.
 
-Never present internal documents as confirmed fact.
+QUESTION:
+{question}
 
-Separate output into:
+ARTICLE:
+{article_text}
+
+INTERNAL DOCUMENTS (UNVERIFIED):
+{chr(10).join(retrieved_docs)}
+
+Return:
 
 • Established Scientific Facts
 • Article Findings
 • Unverified Internal Notes
 • Unknowns / Limits
-
-ARTICLE:
-{article_text}
-
-QUESTION:
-{question}
-
-INTERNAL DOCUMENT NOTES:
-{doc_context}
 
 Bullet points only.
 """
@@ -155,7 +147,6 @@ Bullet points only.
     )
 
     return {
-        "status": "success",
         "analysis": response.choices[0].message.content,
         "documents_used": len(retrieved_docs)
     }
