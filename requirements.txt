@@ -1,5 +1,4 @@
 flask
-openai
+sentence-transformers
+faiss-cpu
 numpy
-PyPDF2
-gunicorn
