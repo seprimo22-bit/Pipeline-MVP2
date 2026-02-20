@@ -1,5 +1,6 @@
 flask
-openai>=1.30.0
-gunicorn
-python-dotenv
+openai
+faiss-cpu==1.7.4
+numpy
 PyPDF2
+gunicorn
