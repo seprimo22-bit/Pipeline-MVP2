@@ -1,93 +1,99 @@
-import os
-from flask import Flask, render_template, request
-from openai import OpenAI
-from rag_engine import build_index, search_docs
+from flask import Flask, request, jsonify import re
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+app = Flask(name)
 
-CHAT_MODEL = "gpt-4o-mini"
+-----------------------------
 
-app = Flask(__name__)
+TERM NORMALIZATION MAP
 
-# Build document index once at startup
-build_index()
+-----------------------------
 
+TERM_MAP = { "metamaterial": ["architected material", "lattice material"], "coherence": ["stability", "structural integrity"], "geometry optimization": ["design-centered", "architected"] }
 
-def run_pipeline(question=None, article=None):
+AMBIGUOUS_TERMS = [ "promising", "may", "potential", "suggests", "could", "likely" ]
 
-    question = (question or "").strip()
-    article = (article or "").strip()
+-----------------------------
 
-    combined_input = question + "\n" + article
+COGNITIVE PIPELINE CLASS
 
-    doc_context = search_docs(combined_input) if combined_input.strip() else ""
+-----------------------------
 
-    system_prompt = """
-You are a constraint-based factual analysis engine.
+class CognitivePipeline: def extract_facts(self, text): sentences = re.split(r'[.!?]', text) return [ s.strip() for s in sentences if any(word in s.lower() for word in [ "developed", "demonstrates", "shows", "improves", "reveals", "indicates" ]) ]
 
-You MUST structure output in exactly these sections:
+def normalize_terms(self, facts):
+    normalized = []
+    for fact in facts:
+        for canonical, variants in TERM_MAP.items():
+            for v in variants:
+                fact = fact.replace(v, canonical)
+        normalized.append(fact)
+    return normalized
 
-FACTS FROM INPUT:
-- Explicit statements found in the question or article.
+def detect_relationships(self, facts, context):
+    if not context:
+        return "No relationship"
 
-FACTS ABOUT INPUT:
-- Independently verifiable domain facts.
-- Do not restate the article.
+    matches = 0
+    for fact in facts:
+        for keyword in context:
+            if keyword.lower() in fact.lower():
+                matches += 1
 
-DOCUMENT MATCHES:
-- Only direct factual matches from indexed documents.
-- If none, say: No direct document match found.
+    if matches >= 3:
+        return "Direct relationship confirmed"
+    elif matches >= 1:
+        return "Conceptual alignment"
+    else:
+        return "No relationship found"
 
-RELATIONSHIP STATUS:
-- Direct relationship confirmed
-- Possible but unverified overlap
-- No relationship found
+def ambiguity_score(self, text):
+    score = sum(text.lower().count(t) for t in AMBIGUOUS_TERMS)
+    return round(score / max(len(text.split()), 1), 3)
 
-Rules:
-- Do NOT speculate.
-- Do NOT suggest future applications.
-- Do NOT use narrative language.
-- If no connection exists, explicitly say so.
-"""
+def compute_confidence(self, facts, relationship):
+    base = len(facts) * 0.1
 
-    user_prompt = f"""
-QUESTION:
-{question}
+    if relationship == "Direct relationship confirmed":
+        base += 0.3
+    elif relationship == "Conceptual alignment":
+        base += 0.15
 
-ARTICLE:
-{article}
+    return min(base, 1.0)
 
-DOCUMENT CONTEXT:
-{doc_context}
-"""
+def run(self, article_text, query_context=None):
+    facts = self.extract_facts(article_text)
+    normalized = self.normalize_terms(facts)
+    relationship = self.detect_relationships(normalized, query_context)
+    ambiguity = self.ambiguity_score(article_text)
+    confidence = self.compute_confidence(facts, relationship)
 
-    if not combined_input.strip():
-        return "Enter a question, article, or both."
+    return {
+        "facts": facts,
+        "normalized_terms": normalized,
+        "relationship_status": relationship,
+        "ambiguity_score": ambiguity,
+        "confidence_score": confidence
+    }
 
-    response = client.chat.completions.create(
-        model=CHAT_MODEL,
-        temperature=0,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
-    )
+pipeline = CognitivePipeline()
 
-    return response.choices[0].message.content
+-----------------------------
 
+API ENDPOINT
 
-@app.route("/", methods=["GET", "POST"])
-def index():
+-----------------------------
 
-    result = ""
+@app.route('/analyze', methods=['POST']) def analyze(): data = request.json article = data.get('article', '') context = data.get('context', [])
 
-    if request.method == "POST":
-        q = request.form.get("question")
-        a = request.form.get("article")
-        result = run_pipeline(q, a)
+result = pipeline.run(article, context)
+return jsonify(result)
 
-    return render_template("index.html", result=result)
+-----------------------------
 
+HEALTH CHECK
 
-if __name__ == "__main__":
-    app.run(debug=True),
+-----------------------------
+
+@app.route('/') def home(): return "Campbell Cognitive Pipeline API running"
+
+if name == 'main': app.run(debug=True, host='0.0.0.0', port=5000)
