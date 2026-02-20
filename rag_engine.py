@@ -9,7 +9,6 @@ except:
 
 DOCUMENT_FOLDER = "documents"
 
-# Words that cause garbage matches
 STOPWORDS = {
     "the","a","an","is","are","of","to","and","in",
     "on","for","with","this","that","it","as","at",
@@ -37,13 +36,11 @@ def read_pdf_file(path):
         with open(path, "rb") as f:
             reader = PyPDF2.PdfReader(f)
             for page in reader.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted.lower()
+                text += page.extract_text() or ""
     except:
         pass
 
-    return text
+    return text.lower()
 
 
 # ---------------------------
@@ -72,7 +69,7 @@ def load_documents():
                 "content": content
             })
 
-    print(f"Loaded {len(docs)} private documents.")
+    print(f"Loaded {len(docs)} documents")
     return docs
 
 
@@ -80,38 +77,29 @@ DOCUMENT_CACHE = load_documents()
 
 
 # ---------------------------
-# DOCUMENT SEARCH
+# DOCUMENT MATCH CHECK
 # ---------------------------
 def search_documents(question):
 
     if not DOCUMENT_CACHE:
         return []
 
-    # Clean query words
     q_words = [
         w.lower() for w in question.split()
         if w.lower() not in STOPWORDS and len(w) > 2
     ]
 
-    if not q_words:
-        return []
-
-    results = []
+    matches = []
 
     for doc in DOCUMENT_CACHE:
-        score = sum(
-            1 for word in q_words
-            if word in doc["content"]
-        )
+        score = sum(1 for w in q_words if w in doc["content"])
 
-        # Require at least minimal relevance
-        if score >= 2:
-            results.append({
+        if score >= 3:
+            matches.append({
                 "file": doc["file"],
-                "score": score,
-                "snippet": "Relevant document identified (content hidden for privacy)."
+                "confidence": score
             })
 
-    results.sort(key=lambda x: x["score"], reverse=True)
+    matches.sort(key=lambda x: x["confidence"], reverse=True)
 
-    return results[:3]
+    return matches[:3]
