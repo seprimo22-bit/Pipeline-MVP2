@@ -1,100 +1,72 @@
 import os
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template, request
 from openai import OpenAI
-from rag_engine import search_documents
 
 app = Flask(__name__)
-
-# Load OpenAI key safely
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY not found in environment variables.")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# ----------------------------
-# FACT EXTRACTION PROMPT
-# ----------------------------
+def analyze_article_metadata(article_text, question):
+    """
+    Pulls facts ABOUT the article:
+    - What type of study it is
+    - Methodology
+    - Scope
+    - Assumptions
+    - Limits
+    - Evidence base
+    """
 
-def build_prompt(question, article_text=None):
+    prompt = f"""
+You are a strict fact extraction engine.
 
-    instructions = """
-You are a scientific fact extraction engine.
+IMPORTANT RULES:
+- Extract facts ABOUT the article, not facts from the article topic.
+- Do NOT answer the user's question.
+- Do NOT diagnose or speculate.
+- Only describe the article itself.
 
-Strict rules:
-- Extract measurable, verifiable, testable facts only.
-- No summaries.
-- No opinions.
-- No speculation.
-- No narrative language.
-- Return structured output under these headings:
+Return structured facts:
 
-1. Established Scientific Facts
-2. Article-Supported Facts
-3. Unknowns or Unverified Claims
+1. Article Type
+2. Research Goal
+3. Methodology Used
+4. Evidence/Data Sources
+5. Assumptions or Constraints
+6. Limits of Conclusions
+7. Confidence Level (High/Medium/Low)
+8. Unknowns or Missing Information
 
-Respond in plain text.
-"""
-
-    if article_text:
-        return f"""{instructions}
-
-QUESTION:
+User Question (context only):
 {question}
 
-ARTICLE TEXT:
-{article_text[:10000]}
-"""
-    else:
-        return f"""{instructions}
-
-QUESTION:
-{question}
+Article Text:
+{article_text}
 """
 
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
 
-# ----------------------------
-# ROUTES
-# ----------------------------
-
-@app.route("/")
-def home():
-    return render_template("index.html")
+    return response.choices[0].message.content
 
 
-@app.route("/ask", methods=["POST"])
-def ask():
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
 
-    try:
-        data = request.get_json()
+    if request.method == "POST":
+        question = request.form.get("question", "")
+        article_text = request.form.get("article_text", "")
 
-        if not data or "question" not in data:
-            return jsonify({"error": "No question provided"}), 400
+        if article_text.strip():
+            result = analyze_article_metadata(article_text, question)
+        else:
+            result = "No article text provided."
 
-        question = data["question"]
-        article = data.get("article")
-
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "user", "content": build_prompt(question, article)}
-            ],
-            temperature=0
-        )
-
-        ai_output = response.choices[0].message.content
-
-        private_hits = search_documents(question)
-
-        return jsonify({
-            "fact_analysis": ai_output,
-            "private_document_matches": private_hits
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return render_template("index.html", result=result)
 
 
 if __name__ == "__main__":
