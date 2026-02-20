@@ -1,65 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Campbell Fact Cognitive Pipeline</title>
-<style>
-body { font-family: Arial; max-width: 900px; margin: auto; padding: 30px; }
-textarea { width: 100%; height: 140px; margin-top: 10px; }
-button { margin-top: 10px; padding: 10px 15px; }
-pre { background: #f4f4f4; padding: 15px; white-space: pre-wrap; }
-</style>
+    <title>Campbell Fact Cognitive Pipeline</title>
 </head>
 <body>
 
 <h2>Campbell Fact Cognitive Pipeline</h2>
 
-<label>Question:</label>
-<textarea id="question"></textarea>
+<form method="POST">
+    <p>Question:</p>
+    <textarea name="question" rows="4" cols="80"></textarea>
 
-<label>Optional Article Text:</label>
-<textarea id="article"></textarea>
+    <p>Optional Article Text:</p>
+    <textarea name="article_text" rows="10" cols="80"></textarea>
 
-<button onclick="ask()">Run Fact Extraction</button>
+    <br><br>
+    <button type="submit">Run Fact Extraction</button>
+</form>
 
-<pre id="output"></pre>
-
-<script>
-async function ask() {
-
-    const question = document.getElementById("question").value;
-    const article = document.getElementById("article").value;
-
-    document.getElementById("output").innerText = "Processing...";
-
-    try {
-        const res = await fetch("/ask", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                question: question,
-                article: article
-            })
-        });
-
-        const data = await res.json();
-
-        if (data.error) {
-            document.getElementById("output").innerText =
-                "Server Error:\n" + data.error;
-            return;
-        }
-
-        document.getElementById("output").innerText =
-            data.fact_analysis +
-            "\n\nPrivate Document Matches:\n" +
-            JSON.stringify(data.private_document_matches, null, 2);
-
-    } catch (err) {
-        document.getElementById("output").innerText =
-            "Frontend Error:\n" + err;
-    }
-}
-</script>
+{% if result %}
+<hr>
+<h3>Result:</h3>
+<pre>{{ result }}</pre>
+{% endif %}
 
 </body>
 </html>
