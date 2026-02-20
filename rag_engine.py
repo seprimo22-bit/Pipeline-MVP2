@@ -38,7 +38,7 @@ def read_pdf_file(path):
 
 
 # ---------------------------
-# LOAD DOCUMENTS
+# DOCUMENT CACHE (LOAD ONCE)
 # ---------------------------
 def load_documents():
     docs = []
@@ -70,11 +70,11 @@ DOCUMENT_CACHE = load_documents()
 
 
 # ---------------------------
-# SIMPLE SEARCH
+# SEARCH FUNCTION
 # ---------------------------
 def search_documents(question):
 
-    question = question.lower()
+    q_words = question.lower().split()
     results = []
 
     for doc in DOCUMENT_CACHE:
@@ -82,15 +82,14 @@ def search_documents(question):
         text = doc["content"].lower()
 
         score = sum(
-            1 for word in question.split()
-            if word in text
+            1 for word in q_words if word in text
         )
 
         if score > 0:
             results.append({
                 "file": doc["file"],
                 "score": score,
-                "snippet": doc["content"][:1500]
+                "snippet": doc["content"][:500]
             })
 
     results.sort(key=lambda x: x["score"], reverse=True)
