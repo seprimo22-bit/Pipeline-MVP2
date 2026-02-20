@@ -8,7 +8,7 @@ app = Flask(__name__)
 # ---------------------------
 # DOMAIN GATE
 # ---------------------------
-def is_private_question(question: str) -> bool:
+def is_private_question(question: str):
     private_keywords = [
         "paper zero",
         "third harmonic",
@@ -31,11 +31,9 @@ def generate_general_answer(question):
         "source": "general_knowledge",
         "confidence": "baseline",
         "document_support": None,
-        "answer": (
-            "General factual response mode.\n\n"
-            "Private documents were NOT searched because "
-            "the question did not reference them."
-        )
+        "answer":
+        "General factual response mode.\n"
+        "Private documents NOT searched."
     }
 
 
@@ -50,10 +48,9 @@ def generate_private_answer(question):
         "source": "private_documents",
         "confidence": "document_supported",
         "document_support": docs,
-        "answer": (
-            "Private document search triggered.\n\n"
-            "Relevant document snippets returned below."
-        )
+        "answer":
+        "Private document search triggered.\n"
+        "Relevant documents identified."
     }
 
 
@@ -72,7 +69,7 @@ def ask():
     data = request.get_json()
 
     if not data or "question" not in data:
-        return jsonify({"error": "No question provided"}), 400
+        return jsonify({"error": "No question"}), 400
 
     question = data["question"]
 
