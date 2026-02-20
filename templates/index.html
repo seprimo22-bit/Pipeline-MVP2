@@ -1,70 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Campbell Cognitive Pipeline</title>
-
-<style>
-body {
- font-family: Arial;
- max-width:900px;
- margin:auto;
- padding:30px;
- background:#f4f6f8;
-}
-
-input {
- width:75%;
- padding:12px;
- font-size:16px;
-}
-
-button {
- padding:12px 18px;
- background:#2e7dff;
- color:white;
- border:none;
-}
-
-#answer {
- margin-top:25px;
- background:white;
- padding:20px;
- border-radius:8px;
-}
-</style>
+<title>Pipeline Article Analyzer</title>
 </head>
 
 <body>
 
-<h1>Campbell Cognitive Pipeline</h1>
+<h2>Campbell Pipeline — Article Analysis</h2>
 
-<input id="question" placeholder="Ask something..." />
-<button onclick="ask()">Ask</button>
+<textarea id="article" rows="15" cols="80"
+placeholder="Paste article here..."></textarea>
 
-<div id="answer"></div>
+<br><br>
+
+<button onclick="analyze()">Analyze Article</button>
+
+<pre id="result"></pre>
 
 <script>
-async function ask() {
+async function analyze(){
 
- const q = document.getElementById("question").value;
+    const article =
+        document.getElementById("article").value;
 
- document.getElementById("answer").innerText="Thinking...";
+    document.getElementById("result").innerText =
+        "Processing...";
 
- const res = await fetch("/ask",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({question:q})
- });
+    const res = await fetch("/analyze", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body: JSON.stringify({article})
+    });
 
- const data = await res.json();
+    const data = await res.json();
 
- let output = data.answer;
-
- if(data.document_support && data.document_support.length){
-   output += "\n\n📄 Document alignment detected.";
- }
-
- document.getElementById("answer").innerText = output;
+    document.getElementById("result").innerText =
+        "FACTS:\n\n" +
+        data.extracted_facts +
+        "\n\n-----------------\n\n" +
+        "ANALYSIS ABOUT ARTICLE:\n\n" +
+        data.analysis_about_article;
 }
 </script>
 
