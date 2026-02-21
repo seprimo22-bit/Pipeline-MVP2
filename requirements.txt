@@ -1,5 +1,4 @@
 flask
-openai>=1.30.0
-gunicorn
-python-dotenv
-PyPDF2
+sentence-transformers
+faiss-cpu
+numpy

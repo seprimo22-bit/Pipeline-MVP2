@@ -1,77 +1,54 @@
 import os
-from openai import OpenAI
+import faiss
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
-# Initialize OpenAI client safely
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+class RAGEngine:
 
+    def __init__(self, index_path="vector.index"):
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.index_path = index_path
+        self.index = None
+        self.documents = []
 
-def extract_article_facts(article_text, question=None):
-    """
-    Extract facts ONLY from article text.
-    Question is used ONLY for relevance guidance.
-    """
+        if os.path.exists(index_path):
+            self.load_index()
 
-    if not article_text or len(article_text.strip()) < 50:
-        return {
-            "established_facts": [],
-            "article_facts": [],
-            "unknowns": ["No article text provided or text too short."]
-        }
+    # -----------------------------
+    # BUILD INDEX
+    # -----------------------------
+    def build_index(self, documents):
+        """
+        documents: list of text chunks
+        """
+        self.documents = documents
+        embeddings = self.model.encode(documents)
 
-    prompt = f"""
-You are a FACT EXTRACTION ENGINE.
+        dimension = embeddings.shape[1]
+        self.index = faiss.IndexFlatL2(dimension)
+        self.index.add(np.array(embeddings))
 
-STRICT RULES:
-1. ONLY extract facts explicitly stated in the article text.
-2. DO NOT infer, speculate, or answer the question.
-3. The question is ONLY context.
-4. Separate facts into:
+        faiss.write_index(self.index, self.index_path)
 
-- Established Scientific Facts
-- Article-Specific Facts
-- Unknowns / Limits
+    # -----------------------------
+    # LOAD EXISTING INDEX
+    # -----------------------------
+    def load_index(self):
+        self.index = faiss.read_index(self.index_path)
 
-USER QUESTION (context only):
-{question if question else "None"}
+    # -----------------------------
+    # RETRIEVE TOP MATCHES
+    # -----------------------------
+    def retrieve(self, query, top_k=3):
+        if self.index is None:
+            return []
 
-ARTICLE TEXT:
-{article_text}
+        query_embedding = self.model.encode([query])
+        distances, indices = self.index.search(np.array(query_embedding), top_k)
 
-Return bullet points only.
-No commentary.
-No extra explanation.
-"""
+        results = []
+        for idx in indices[0]:
+            if idx < len(self.documents):
+                results.append(self.documents[idx])
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            temperature=0,
-            messages=[
-                {"role": "system", "content": "Fact extraction only."},
-                {"role": "user", "content": prompt},
-            ],
-        )
-
-        return {
-            "raw_output": response.choices[0].message.content
-        }
-
-    except Exception as e:
-        return {
-            "error": str(e)
-        }
-
-
-def run_fact_pipeline(article_text, question=None):
-    """
-    Main pipeline entry point for Flask app.
-    Keeps future compatibility with multi-stage pipeline.
-    """
-
-    facts = extract_article_facts(article_text, question)
-
-    return {
-        "status": "success",
-        "pipeline": "fact_only_article_analysis",
-        "result": facts,
-    }
+        return results

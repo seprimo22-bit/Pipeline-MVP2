@@ -1,28 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Campbell Fact Cognitive Pipeline</title>
+<title>Campbell Cognitive Pipeline</title>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 40px;
+}
+
+textarea {
+    width: 100%;
+    height: 140px;
+}
+
+button {
+    padding: 10px 20px;
+}
+
+.result {
+    background: #eee;
+    padding: 15px;
+    margin-top: 20px;
+    white-space: pre-wrap;
+}
+</style>
 </head>
 <body>
 
-<h2>Campbell Fact Cognitive Pipeline</h2>
+<h1>Campbell Cognitive Pipeline</h1>
 
-<form method="POST">
-    <p>Question:</p>
-    <textarea name="question" rows="4" cols="80"></textarea>
+<h3>Ask a Question</h3>
+<textarea id="question"></textarea>
 
-    <p>Optional Article Text:</p>
-    <textarea name="article_text" rows="10" cols="80"></textarea>
+<h3>Paste Article</h3>
+<textarea id="article"></textarea>
 
-    <br><br>
-    <button type="submit">Run Fact Extraction</button>
-</form>
+<br><br>
+<button onclick="runPipeline()">Run Analysis</button>
 
-{% if result %}
-<hr>
-<h3>Result:</h3>
-<pre>{{ result }}</pre>
-{% endif %}
+<div class="result" id="resultBox">
+Waiting for analysis...
+</div>
+
+<script>
+async function runPipeline() {
+    const article = document.getElementById("article").value;
+    const question = document.getElementById("question").value;
+
+    const response = await fetch("/analyze", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            article: article,
+            context: question ? question.split(" ") : []
+        })
+    });
+
+    const data = await response.json();
+
+    document.getElementById("resultBox").textContent =
+        JSON.stringify(data, null, 2);
+}
+</script>
 
 </body>
 </html>
