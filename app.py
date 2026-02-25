@@ -1,50 +1,9 @@
 from flask import Flask, request, jsonify, render_template
 import re
 import os
-import numpy as np
-import faiss
+import PyPDF2
 
 app = Flask(__name__)
-
-# =========================================================
-# GLOBALS (LAZY LOADED)
-# =========================================================
-
-rag = None
-pipeline = None
-
-# =========================================================
-# RAG ENGINE
-# =========================================================
-
-class SimpleRAG:
-
-    def __init__(self):
-        from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
-        self.index = None
-        self.documents = []
-
-    def build_index(self, documents):
-        embeddings = self.model.encode(documents)
-        dimension = embeddings.shape[1]
-        self.index = faiss.IndexFlatL2(dimension)
-        self.index.add(np.array(embeddings))
-        self.documents = documents
-
-    def retrieve(self, query, top_k=3):
-        if self.index is None:
-            return []
-
-        query_embedding = self.model.encode([query])
-        distances, indices = self.index.search(np.array(query_embedding), top_k)
-
-        return [
-            self.documents[i]
-            for i in indices[0]
-            if i < len(self.documents)
-        ]
-
 
 # =========================================================
 # PIPELINE ENGINE
@@ -134,28 +93,21 @@ class CognitivePipeline:
         }
 
 
+pipeline = CognitivePipeline()
+
+
 # =========================================================
-# LAZY INITIALIZER
+# PDF TEXT EXTRACTION
 # =========================================================
 
-def initialize_engines():
-    global rag, pipeline
-
-    if pipeline is None:
-        pipeline = CognitivePipeline()
-
-    if rag is None:
-        rag = SimpleRAG()
-
-        docs = [
-            "Titan A16 is a constraint-first alloy framework.",
-            "The coherence ratio measures structural integrity divided by deformation noise.",
-            "ORR enforces validation through falsifiable constraint testing.",
-            "Geometry-driven metamaterials modulate mechanical properties.",
-            "Additive manufacturing introduces microstructural brittleness."
-        ]
-
-        rag.build_index(docs)
+def extract_pdf_text(file):
+    text = ""
+    reader = PyPDF2.PdfReader(file)
+    for page in reader.pages:
+        t = page.extract_text()
+        if t:
+            text += t + "\n"
+    return text
 
 
 # =========================================================
@@ -169,20 +121,25 @@ def home():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    initialize_engines()
 
-    data = request.json
-    article = data.get("article", "")
-    context = data.get("context", [])
+    article = request.form.get("article", "")
+    context = request.form.get("context", "")
+    file = request.files.get("file")
 
-    result = pipeline.run(article, context)
-    result["retrieved_context"] = rag.retrieve(article)
+    # Handle uploaded file
+    if file:
+        if file.filename.endswith(".pdf"):
+            article += "\n" + extract_pdf_text(file)
+        else:
+            article += "\n" + file.read().decode("utf-8", errors="ignore")
+
+    result = pipeline.run(article, context.split())
 
     return jsonify(result)
 
 
 # =========================================================
-# START SERVER (Render Friendly)
+# START SERVER
 # =========================================================
 
 if __name__ == "__main__":
