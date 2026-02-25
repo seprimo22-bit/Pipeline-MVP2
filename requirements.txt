@@ -2,3 +2,5 @@ flask
 sentence-transformers
 faiss-cpu
 numpy
+gunicorn
+openai
