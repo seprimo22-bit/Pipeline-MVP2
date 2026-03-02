@@ -26,6 +26,7 @@ button {
 }
 </style>
 </head>
+
 <body>
 
 <h1>Campbell Cognitive Pipeline</h1>
@@ -36,7 +37,12 @@ button {
 <h3>Paste Article</h3>
 <textarea id="article"></textarea>
 
+<!-- ✅ NEW UPLOAD SECTION -->
+<h3>Upload Document (optional)</h3>
+<input type="file" id="fileUpload" accept=".txt">
+
 <br><br>
+
 <button onclick="runPipeline()">Run Analysis</button>
 
 <div class="result" id="resultBox">
@@ -64,6 +70,19 @@ async function runPipeline() {
     document.getElementById("resultBox").textContent =
         JSON.stringify(data, null, 2);
 }
+
+/* ✅ NEW SCRIPT — AUTO FILL ARTICLE BOX FROM FILE */
+document.getElementById("fileUpload").addEventListener("change", async function() {
+
+    const file = this.files[0];
+    if (!file) return;
+
+    // safe version: TXT files only
+    const text = await file.text();
+
+    // put file contents into article textarea
+    document.getElementById("article").value = text;
+});
 </script>
 
 </body>
