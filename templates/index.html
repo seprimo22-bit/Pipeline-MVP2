@@ -37,8 +37,8 @@ button {
 <h3>Paste Article</h3>
 <textarea id="article"></textarea>
 
-<!-- ✅ NEW UPLOAD SECTION -->
-<h3>Upload Document (optional)</h3>
+<!-- ✅ UPLOAD BOX (ONLY NEW UI ELEMENT) -->
+<h3>Upload Document</h3>
 <input type="file" id="fileUpload" accept=".txt">
 
 <br><br>
@@ -71,17 +71,20 @@ async function runPipeline() {
         JSON.stringify(data, null, 2);
 }
 
-/* ✅ NEW SCRIPT — AUTO FILL ARTICLE BOX FROM FILE */
-document.getElementById("fileUpload").addEventListener("change", async function() {
+/* ✅ UPLOAD SCRIPT — DOES NOT CHANGE PIPELINE */
+document.getElementById("fileUpload").addEventListener("change", function () {
 
     const file = this.files[0];
     if (!file) return;
 
-    // safe version: TXT files only
-    const text = await file.text();
+    const reader = new FileReader();
 
-    // put file contents into article textarea
-    document.getElementById("article").value = text;
+    reader.onload = function (e) {
+        // fills existing Paste Article box
+        document.getElementById("article").value = e.target.result;
+    };
+
+    reader.readAsText(file);
 });
 </script>
 
