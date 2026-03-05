@@ -1,92 +1,195 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Campbell Cognitive Software Pipeline</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campbell Cognitive Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-body {
-    font-family: Arial;
-    margin: 40px;
-}
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --border: #2a2d35;
+    --accent: #4af0a0;
+    --accent2: #4a9ff0;
+    --accent3: #f0a04a;
+    --warn: #f04a6a;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
 
-textarea {
-    width: 100%;
-    height: 140px;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-button {
-    padding: 10px 20px;
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
 
-.result {
-    background: #eee;
-    padding: 15px;
-    margin-top: 20px;
-    white-space: pre-wrap;
-}
-</style>
-</head>
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
 
-<body>
+  .logo-mark {
+    width: 32px; height: 32px;
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 14px; font-weight: 600;
+    color: var(--accent);
+  }
 
-<h1>Campbell Cognitive Pipeline</h1>
+  header h1 { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.05em; }
+  header .version {
+    margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted);
+    border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px;
+  }
 
-<h3>Ask a Question</h3>
-<textarea id="question"></textarea>
+  .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
 
-<h3>Paste Article</h3>
-<textarea id="article"></textarea>
+  .intro { margin-bottom: 32px; }
+  .intro h2 { font-family: var(--mono); font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .intro h2 span { color: var(--accent); }
+  .intro p { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 500px; }
 
-<!-- ✅ UPLOAD BOX (ONLY NEW UI ELEMENT) -->
-<h3>Upload Document</h3>
-<input type="file" id="fileUpload" accept=".txt">
+  .pipeline-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .ptag {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px; border: 1px solid;
+  }
+  .ptag.orr { color: var(--accent); border-color: rgba(74,240,160,0.3); background: rgba(74,240,160,0.06); }
+  .ptag.paper-zero { color: var(--accent2); border-color: rgba(74,159,240,0.3); background: rgba(74,159,240,0.06); }
+  .ptag.privacy { color: var(--warn); border-color: rgba(240,74,106,0.3); background: rgba(240,74,106,0.06); }
 
-<br><br>
+  /* Input grid */
+  .input-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 640px) { .input-section { grid-template-columns: 1fr; } }
 
-<button onclick="runPipeline()">Run Analysis</button>
+  .input-group { display: flex; flex-direction: column; gap: 8px; }
+  .input-group label {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase;
+  }
 
-<div class="result" id="resultBox">
-Waiting for analysis...
-</div>
+  textarea {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; color: var(--text);
+    font-family: var(--sans); font-size: 14px; line-height: 1.6;
+    resize: vertical; min-height: 120px; transition: border-color 0.2s; outline: none;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); font-size: 13px; }
 
-<script>
-async function runPipeline() {
-    const article = document.getElementById("article").value;
-    const question = document.getElementById("question").value;
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent2);
+    background: rgba(74,159,240,0.04);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .upload-label {
+    font-family: var(--mono); font-size: 12px; color: var(--accent2);
+    font-weight: 600; letter-spacing: 0.05em;
+  }
+  .upload-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .upload-sub strong { color: var(--warn); }
 
-    const response = await fetch("/analyze", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            article: article,
-            context: question ? question.split(" ") : []
-        })
-    });
+  /* File loaded state */
+  .file-loaded {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(74,159,240,0.08);
+    border: 1px solid rgba(74,159,240,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 8px;
+  }
+  .file-loaded.visible { display: flex; }
+  .file-icon { font-size: 18px; }
+  .file-info { flex: 1; }
+  .file-name { font-family: var(--mono); font-size: 12px; color: var(--accent2); font-weight: 600; }
+  .file-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .privacy-badge {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    color: var(--warn); border: 1px solid rgba(240,74,106,0.4);
+    background: rgba(240,74,106,0.08); padding: 3px 8px; border-radius: 10px;
+    letter-spacing: 0.05em;
+  }
+  .file-clear {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 16px; padding: 4px; line-height: 1;
+    transition: color 0.2s;
+  }
+  .file-clear:hover { color: var(--warn); }
 
-    const data = await response.json();
+  /* OR divider */
+  .or-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 12px 0; color: var(--muted);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  }
+  .or-divider::before, .or-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
 
-    document.getElementById("resultBox").textContent =
-        JSON.stringify(data, null, 2);
-}
+  /* Run button */
+  .run-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--accent); color: #0e0f11;
+    border: none; border-radius: 8px; padding: 14px 28px;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s;
+    margin-bottom: 32px;
+  }
+  .run-btn:hover { background: #6afab8; transform: translateY(-1px); }
+  .run-btn.loading { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
 
-/* ✅ UPLOAD SCRIPT — DOES NOT CHANGE PIPELINE */
-document.getElementById("fileUpload").addEventListener("change", function () {
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.6s linear infinite; display: none;
+  }
+  .run-btn.loading .spinner { display: block; }
+  .run-btn.loading .btn-icon { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-    const file = this.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-        // fills existing Paste Article box
-        document.getElementById("article").value = e.target.result;
-    };
-
-    reader.readAsText(file);
-});
-</script>
-
-</body>
-</html>
+  /* Results */
+  #results { display: none; }
+  .results-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .results-header h2 {
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    letter-spacing: 0
