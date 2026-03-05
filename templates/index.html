@@ -192,4 +192,348 @@
   }
   .results-header h2 {
     font-family: var(--mono); font-size: 12px; font-weight: 600;
-    letter-spacing: 0
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  }
+  .results-header .timestamp { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 640px) { .cards-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px;
+    animation: fadeUp 0.3s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card:nth-child(1) { animation-delay: 0.05s; border-top: 2px solid var(--accent); }
+  .card:nth-child(2) { animation-delay: 0.10s; border-top: 2px solid var(--accent2); }
+
+  .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .card-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .card:nth-child(1) .card-icon { background: rgba(74,240,160,0.12); }
+  .card:nth-child(2) .card-icon { background: rgba(74,159,240,0.12); }
+
+  .card-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+  .card:nth-child(1) .card-title { color: var(--accent); }
+  .card:nth-child(2) .card-title { color: var(--accent2); }
+  .card-count {
+    margin-left: auto; font-family: var(--mono); font-size: 11px;
+    color: var(--muted); background: var(--border); padding: 2px 7px; border-radius: 10px;
+  }
+
+  .fact-list { display: flex; flex-direction: column; gap: 8px; }
+  .fact-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 13px; line-height: 1.5; color: #c8cad4;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);
+  }
+  .fact-bullet { width: 5px; height: 5px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .card:nth-child(1) .fact-bullet { background: var(--accent); }
+  .card:nth-child(2) .fact-bullet { background: var(--accent2); }
+
+  .card-full {
+    grid-column: 1 / -1;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px;
+    animation: fadeUp 0.3s ease 0.15s both;
+  }
+
+  .status-row { display: flex; align-items: center; gap: 16px; }
+  .status-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.found { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .status-dot.partial { background: var(--accent3); box-shadow: 0 0 10px var(--accent3); }
+  .status-dot.none { background: var(--muted); }
+
+  .status-tag {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .status-tag.found { color: var(--accent); }
+  .status-tag.partial { color: var(--accent3); }
+  .status-tag.none { color: var(--muted); }
+
+  .status-text { font-size: 13px; color: #c8cad4; line-height: 1.5; flex: 1; }
+  .doc-match {
+    font-size: 13px; color: var(--muted); font-family: var(--mono);
+    padding: 10px; background: rgba(255,255,255,0.02);
+    border-radius: 6px; border: 1px solid var(--border);
+  }
+
+  /* Source tag on results */
+  .source-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 10px; margin-left: 8px;
+  }
+  .source-badge.upload { color: var(--accent2); border: 1px solid rgba(74,159,240,0.4); background: rgba(74,159,240,0.08); }
+  .source-badge.paste { color: var(--accent); border: 1px solid rgba(74,240,160,0.4); background: rgba(74,240,160,0.08); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">C</div>
+  <h1>Campbell Cognitive Pipeline</h1>
+  <span class="version">v2.1</span>
+</header>
+
+<div class="container">
+
+  <div class="intro">
+    <h2>Fact. Inference. <span>Constraint.</span></h2>
+    <p>Structured fact separation checked against the Campbell research corpus. Upload or paste a document — it is read in memory and never saved.</p>
+    <div class="pipeline-tags">
+      <span class="ptag orr">ORR Loop</span>
+      <span class="ptag paper-zero">Paper Zero</span>
+      <span class="ptag privacy">No Storage</span>
+    </div>
+  </div>
+
+  <div class="input-section">
+
+    <div class="input-group">
+      <label>Question</label>
+      <textarea id="question" placeholder="What do you want to know?"></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>Document Input</label>
+
+      <!-- Upload zone -->
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.md" onchange="handleFile(this)">
+        <span class="upload-icon">📄</span>
+        <div class="upload-label">Upload a Document</div>
+        <div class="upload-sub">Drag & drop or click — <strong>never saved</strong>, read in memory only</div>
+      </div>
+
+      <!-- File loaded indicator -->
+      <div class="file-loaded" id="fileLoaded">
+        <span class="file-icon">📋</span>
+        <div class="file-info">
+          <div class="file-name" id="fileName"></div>
+          <div class="file-meta" id="fileMeta"></div>
+        </div>
+        <span class="privacy-badge">NOT SAVED</span>
+        <button class="file-clear" onclick="clearFile()" title="Remove file">✕</button>
+      </div>
+
+      <div class="or-divider">or paste text</div>
+
+      <textarea id="article" placeholder="Paste article or document text here..."></textarea>
+    </div>
+
+  </div>
+
+  <button class="run-btn" onclick="runPipeline()" id="runBtn">
+    <span class="btn-icon">▶</span>
+    <span class="spinner"></span>
+    Run Analysis
+  </button>
+
+  <div id="results">
+    <div class="results-header">
+      <h2>Analysis Output</h2>
+      <span id="sourceTag"></span>
+      <span class="timestamp" id="ts"></span>
+    </div>
+    <div id="cards"></div>
+  </div>
+
+</div>
+
+<script>
+  let uploadedText = null;
+  let uploadedFileName = null;
+
+  // Drag and drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  function handleFile(input) {
+    const file = input.files[0];
+    if (file) processFile(file);
+  }
+
+  function processFile(file) {
+    const allowedTypes = ['text/plain', 'text/markdown',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+
+    uploadedFileName = file.name;
+    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+
+    // Show loaded state
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileMeta').textContent = `${sizeMB} MB — read in memory only`;
+    document.getElementById('fileLoaded').classList.add('visible');
+
+    // Read as text (works for .txt, .md; PDF/docx will send raw for server-side parsing)
+    const reader = new FileReader();
+
+    if (file.type === 'text/plain' || file.name.endsWith('.md')) {
+      reader.onload = e => {
+        uploadedText = e.target.result;
+      };
+      reader.readAsText(file);
+    } else {
+      // For PDF/docx — send the file as base64 to server
+      reader.onload = e => {
+        uploadedText = e.target.result; // base64 data URL
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function clearFile() {
+    uploadedText = null;
+    uploadedFileName = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileLoaded').classList.remove('visible');
+  }
+
+  async function runPipeline() {
+    const question = document.getElementById("question").value.trim();
+    const pastedArticle = document.getElementById("article").value.trim();
+
+    const articleText = uploadedText || pastedArticle;
+    const sourceType = uploadedText ? 'upload' : 'paste';
+
+    if (!question && !articleText) {
+      alert("Enter a question, upload a document, or paste text.");
+      return;
+    }
+
+    const btn = document.getElementById("runBtn");
+    btn.classList.add("loading");
+    btn.disabled = true;
+
+    try {
+      const payload = {
+        question,
+        article: articleText,
+        source_type: sourceType,
+        filename: uploadedFileName || null
+      };
+
+      const response = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      renderResults(data, sourceType, uploadedFileName);
+
+    } catch (err) {
+      document.getElementById("results").style.display = "block";
+      document.getElementById("cards").innerHTML = `
+        <div style="padding:40px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px;">
+          ⚠ Could not reach analysis server.
+        </div>`;
+    } finally {
+      btn.classList.remove("loading");
+      btn.disabled = false;
+    }
+  }
+
+  function renderResults(data, sourceType, fileName) {
+    const analysis = data.analysis || data;
+    const facts = analysis.facts || [];
+    const factsAbout = data.facts_about_input || data.FACTS_ABOUT_INPUT || [];
+    const contextDocs = analysis.context_docs || [];
+    const relStatus = data.relationship_status || data.RELATIONSHIP_STATUS || "";
+
+    document.getElementById("results").style.display = "block";
+    document.getElementById("ts").textContent = new Date().toLocaleTimeString();
+
+    // Source badge
+    const sourceTag = document.getElementById("sourceTag");
+    if (sourceType === 'upload' && fileName) {
+      sourceTag.innerHTML = `<span class="source-badge upload">📄 ${escHtml(fileName)}</span>`;
+    } else if (sourceType === 'paste') {
+      sourceTag.innerHTML = `<span class="source-badge paste">✏ Pasted Text</span>`;
+    } else {
+      sourceTag.innerHTML = '';
+    }
+
+    const factsAboutArr = Array.isArray(factsAbout)
+      ? factsAbout
+      : String(factsAbout).split('\n').filter(Boolean);
+
+    const relText = Array.isArray(relStatus)
+      ? relStatus.join(' ')
+      : String(relStatus || "No relationship determined.");
+
+    const relLower = relText.toLowerCase();
+    let dotClass = 'none', tagClass = 'none', tagText = 'No Corpus Match';
+    if (relLower.includes('verified') || relLower.includes('confirmed') || relLower.includes('direct')) {
+      dotClass = 'found'; tagClass = 'found'; tagText = 'Corpus Match Confirmed';
+    } else if (relLower.includes('possible') || relLower.includes('partial') || relLower.includes('overlap')) {
+      dotClass = 'partial'; tagClass = 'partial'; tagText = 'Possible Overlap';
+    }
+
+    document.getElementById("cards").innerHTML = `
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon">📋</div>
+            <span class="card-title">Facts from Input</span>
+            <span class="card-count">${facts.length}</span>
+          </div>
+          <div class="fact-list">
+            ${facts.length > 0
+              ? facts.map(f => `<div class="fact-item"><span class="fact-bullet"></span><span>${escHtml(f)}</span></div>`).join('')
+              : '<div class="fact-item"><span class="fact-bullet"></span><span>No trigger-word facts extracted.</span></div>'
+            }
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon">🔍</div>
+            <span class="card-title">Facts About Input</span>
+            <span class="card-count">${factsAboutArr.length}</span>
+          </div>
+          <div class="fact-list">
+            ${factsAboutArr.length > 0
+              ? factsAboutArr.map(f => `<div class="fact-item"><span class="fact-bullet"></span><span>${escHtml(String(f).replace(/^[-•]\s*/,''))}</span></div>`).join('')
+              : '<div class="fact-item"><span class="fact-bullet"></span><span>No additional context generated.</span></div>'
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="card-full" style="border-top: 2px solid var(--accent3); margin-bottom: 16px;">
+        <div class="card-header" style="margin-bottom:12px">
+          <div class="card-icon" style="background:rgba(240,160,74,0.12)">🔗</div>
+          <span class="card-title" style="color:var(--accent3)">Corpus Match</span>
+        </div>
+        <div class="status-row">
+          <div class="status-dot ${dotClass}"></div>
+          <span class="status-tag ${tagClass}">${tagText}</span>
+          <span class="status-text">${escHtml(relText)}</span>
+        </div>
+      </div>
+
+      <div class="card-full" style="border-top: 2px solid var(--muted);">
+        <div class="card-header" style="margin-bottom:12px">
+          <div class="card-icon" style="background:rgba(107,114,128,0.12)">📁</div
