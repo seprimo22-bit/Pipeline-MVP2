@@ -12,59 +12,65 @@ app = Flask(__name__)
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key) if api_key else None
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+CORPUS_FOLDER = "corpus"  # YOUR research docs live here — never user uploads
+os.makedirs(CORPUS_FOLDER, exist_ok=True)
 
 
 # -------------------------------------------------
-# SIMPLE FACT EXTRACTION (ORIGINAL STYLE)
+# FACT EXTRACTION
 # -------------------------------------------------
 def extract_facts(text):
     sentences = re.split(r'(?<=[.!?]) +', text)
     facts = []
-
     for s in sentences:
         if any(word in s.lower() for word in [
             "is", "was", "were", "has", "have",
-            "according", "study", "data", "%"
+            "according", "study", "data", "%",
+            "shows", "demonstrates", "indicates", "reveals"
         ]):
             facts.append(s.strip())
-
     return facts
 
 
 # -------------------------------------------------
-# SEARCH USER DOCUMENTS
+# SEARCH YOUR CORPUS DOCUMENTS
+# Reads .txt files from /corpus folder
+# These are YOUR research papers — never user files
 # -------------------------------------------------
-def search_local_docs(question):
+def search_corpus(question):
     matches = []
 
-    if not os.path.exists(UPLOAD_FOLDER):
+    if not os.path.exists(CORPUS_FOLDER):
         return matches
 
-    for file in os.listdir(UPLOAD_FOLDER):
-        if not file.endswith(".txt"):
+    question_words = set(question.lower().split())
+
+    for filename in os.listdir(CORPUS_FOLDER):
+        if not filename.endswith(".txt"):
             continue
 
-        path = os.path.join(UPLOAD_FOLDER, file)
+        filepath = os.path.join(CORPUS_FOLDER, filename)
 
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             text = f.read()
 
-        facts = extract_facts(text)
+        sentences = re.split(r'(?<=[.!?]) +', text)
 
-        for fact in facts:
-            if any(word in fact.lower() for word in question.lower().split()):
+        for sentence in sentences:
+            sentence_words = set(sentence.lower().split())
+            overlap = question_words & sentence_words
+            # Match if 2+ meaningful words overlap
+            if len(overlap) >= 2:
                 matches.append({
-                    "source": file,
-                    "fact": fact
+                    "source": filename,
+                    "match": sentence.strip()
                 })
 
-    return matches
+    return matches[:5]  # Return top 5 matches max
 
 
 # -------------------------------------------------
-# HOME PAGE
+# HOME
 # -------------------------------------------------
 @app.route("/")
 def index():
@@ -72,69 +78,98 @@ def index():
 
 
 # -------------------------------------------------
-# ANALYZE QUESTION (RESTORED ORIGINAL BEHAVIOR)
+# MAIN ANALYZE ROUTE
+# Accepts: question, article (pasted OR file text)
+# User documents are NEVER saved to disk
 # -------------------------------------------------
-@app.route("/analyze_question", methods=["POST"])
-def analyze_question():
+@app.route("/analyze", methods=["POST"])
+def analyze():
 
-    # KEEP ORIGINAL JSON INPUT FORMAT
     data = request.get_json()
-    question = data.get("question", "")
+    question = data.get("question", "").strip()
+    article = data.get("article", "").strip()
 
-    # -------- INTERNET FACTS --------
-    if not client:
-        internet_facts = "OpenAI API key missing."
-    else:
+    # Combined input for analysis
+    combined_input = question
+    if article:
+        combined_input = f"{question}\n\n{article}" if question else article
+
+    # -------- FACTS FROM PASTED/UPLOADED TEXT --------
+    input_facts = extract_facts(article) if article else []
+
+    # -------- INTERNET / AI FACTS --------
+    facts_about_input = []
+    relationship_status = "No relationship determined."
+
+    if client and combined_input:
         try:
-            response = client.chat.completions.create(
+            # Facts about the topic
+            facts_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": "Provide factual concise information only. No diagnosis or opinions."
+                        "content": (
+                            "You are a fact extractor. "
+                            "Return only verifiable factual bullet points about the topic. "
+                            "No opinions, no diagnosis, no conclusions. "
+                            "Format: one fact per line starting with -"
+                        )
                     },
-                    {"role": "user", "content": question}
-                ]
+                    {"role": "user", "content": combined_input}
+                ],
+                max_tokens=400
             )
+            facts_text = facts_response.choices[0].message.content
+            facts_about_input = [
+                line.strip().lstrip("-").strip()
+                for line in facts_text.split("\n")
+                if line.strip().startswith("-")
+            ]
 
-            internet_facts = response.choices[0].message.content
+            # Relationship to Campbell corpus
+            rel_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You check whether input relates to these research areas: "
+                            "zero baseline mathematics, coherence functionals, "
+                            "Kuramoto-Sivashinsky equation analysis, Navier-Stokes coherence, "
+                            "constraint triangulation theory, ORR methodology, "
+                            "Titan alloy materials science, CTT feasible arena concept, "
+                            "Einstein Reversal geometric lattice. "
+                            "Reply with ONLY one of: "
+                            "'Direct relationship confirmed', "
+                            "'Possible but unverified overlap', or "
+                            "'No relationship found'."
+                        )
+                    },
+                    {"role": "user", "content": combined_input}
+                ],
+                max_tokens=20
+            )
+            relationship_status = rel_response.choices[0].message.content.strip()
 
         except Exception as e:
-            internet_facts = f"API error: {str(e)}"
+            facts_about_input = [f"API error: {str(e)}"]
 
-    # -------- LOCAL DOCUMENT FACTS --------
-    local_matches = search_local_docs(question)
+    # -------- CORPUS DOCUMENT SEARCH --------
+    corpus_matches = search_corpus(combined_input)
 
+    # -------- RESPONSE --------
     return jsonify({
         "timestamp": str(datetime.datetime.now()),
-        "question": question,
-        "internet_facts": internet_facts,
-        "local_document_matches": local_matches
+        "facts_from_input": input_facts,
+        "facts_about_input": facts_about_input,
+        "corpus_matches": corpus_matches,
+        "relationship_status": relationship_status
     })
 
 
 # -------------------------------------------------
-# DOCUMENT UPLOAD ROUTE (NEW BUT SAFE)
-# -------------------------------------------------
-@app.route("/upload_doc", methods=["POST"])
-def upload_doc():
-
-    file = request.files.get("file")
-
-    if not file:
-        return {"error": "No file uploaded"}, 400
-
-    path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(path)
-
-    return {
-        "status": "uploaded",
-        "file": file.filename
-    }
-
-
-# -------------------------------------------------
-# SERVER START
+# SERVER
 # -------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
