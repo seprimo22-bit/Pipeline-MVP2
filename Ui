@@ -1,101 +1,495 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Campbell Cognitive Pipeline</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper Zero Pipeline — PZP</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Nunito:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-body{
-    font-family: Arial, sans-serif;
-    max-width:900px;
-    margin:auto;
-    padding:30px;
-    background:#f4f6f8;
-}
+  :root {
+    --black: #09090b;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a38;
+    --red: #c0272d;
+    --red2: #a01f24;
+    --gold: #c9a84c;
+    --navy: #1a2a5e;
+    --cream: #f0e8d0;
+    --text: #e8e4d8;
+    --muted: #6b6a72;
+    --green: #4af0a0;
+    --font: 'Nunito', sans-serif;
+    --cinzel: 'Cinzel', serif;
+    --mono: 'Share Tech Mono', monospace;
+  }
 
-h1{
-    text-align:center;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-textarea{
-    width:100%;
-    padding:12px;
-    font-size:15px;
-    margin-bottom:15px;
-}
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 15% 0%, rgba(192,39,45,0.05) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 100%, rgba(26,42,94,0.07) 0%, transparent 55%);
+  }
 
-button{
-    padding:12px 20px;
-    background:#2e7dff;
-    color:white;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
+  /* ── HEADER ── */
+  header {
+    background: #0d0d14;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.5);
+  }
 
-button:hover{
-    background:#1b5edb;
-}
+  .hdr {
+    max-width: 860px; margin: 0 auto;
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
 
-#answer{
-    margin-top:25px;
-    padding:20px;
-    background:white;
-    border-radius:8px;
-    white-space:pre-wrap;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
+  .logo {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 3px solid var(--red);
+    background: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 14px rgba(192,39,45,0.35);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--navy);
+    letter-spacing: .05em;
+  }
+
+  .hdr-text { flex: 1; }
+
+  .hdr-name {
+    font-family: var(--cinzel);
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    color: var(--text);
+  }
+
+  .hdr-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--gold);
+    letter-spacing: .1em;
+    margin-top: 1px;
+  }
+
+  .hdr-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  /* ── WRAP ── */
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 36px 20px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 360px; height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(192,39,45,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-logo {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    border: 5px solid var(--red);
+    background: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 36px rgba(192,39,45,0.22), 0 0 0 10px rgba(192,39,45,0.05);
+    font-family: var(--cinzel);
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--navy);
+    letter-spacing: .06em;
+    position: relative;
+  }
+
+  .hero-logo::before {
+    content: '';
+    position: absolute; inset: 4px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.35);
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .hero-title {
+    font-family: var(--cinzel);
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: .04em;
+  }
+
+  .hero-title em { color: var(--red); font-style: normal; }
+
+  .hero-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 460px;
+    margin: 0 auto 18px;
+  }
+
+  .hero-pills {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .pill-r { color: var(--red); border-color: rgba(192,39,45,.4); background: rgba(192,39,45,.06); }
+  .pill-g { color: var(--gold); border-color: rgba(201,168,76,.35); background: rgba(201,168,76,.06); }
+  .pill-b { color: #7ab8f5; border-color: rgba(122,184,245,.3); background: rgba(122,184,245,.05); }
+
+  /* ── FORM ── */
+  .form-section { margin-bottom: 14px; }
+
+  .form-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .form-label::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  textarea:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(192,39,45,0.09);
+  }
+
+  textarea::placeholder {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ── RUN BUTTON ── */
+  .run-btn {
+    width: 100%;
+    padding: 17px;
+    margin: 20px 0 32px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--cinzel);
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 22px rgba(192,39,45,0.35);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+
+  .run-btn:hover {
+    background: var(--red2);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 30px rgba(192,39,45,0.45);
+  }
+
+  .run-btn:active { transform: translateY(0); }
+
+  /* ── ANSWER ── */
+  #answer-wrap { display: none; }
+
+  .answer-hdr {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .answer-label {
+    font-family: var(--cinzel);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .answer-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .answer-ts {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .answer-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--red);
+    border-radius: 10px;
+    padding: 24px;
+    white-space: pre-wrap;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.85;
+    color: #c8cad4;
+    animation: fadeUp .3s ease both;
+  }
+
+  /* ── LOADING ── */
+  .loading-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 48px 20px;
+    text-align: center;
+    animation: fadeUp .25s ease both;
+  }
+
+  .loading-ring {
+    width: 42px; height: 42px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  .loading-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 20px;
+    text-align: center;
+    margin-top: 60px;
+  }
+
+  .footer-logo {
+    font-family: var(--cinzel);
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: .2em;
+    color: var(--red);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .footer-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .08em;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .footer-stack {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--gold);
+    letter-spacing: .1em;
+    opacity: 0.7;
+  }
 </style>
 </head>
-
 <body>
 
-<h1>Campbell Cognitive Pipeline</h1>
+<header>
+  <div class="hdr">
+    <div class="logo">PZP</div>
+    <div class="hdr-text">
+      <div class="hdr-name">Paper Zero Pipeline</div>
+      <div class="hdr-sub">48 Observables · ORR Framework · Campbell Corpus</div>
+    </div>
+    <span class="hdr-badge">v2.1</span>
+  </div>
+</header>
 
-<h3>Ask a Question (Facts Only)</h3>
-<textarea id="question" rows="4"
-placeholder="Example: What facts exist about Titan A17?"></textarea>
+<div class="wrap">
 
-<h3>Optional Article Analyzer</h3>
-<textarea id="article" rows="10"
-placeholder="Paste article text here if you want analysis..."></textarea>
+  <div class="hero">
+    <div class="hero-logo">PZP</div>
+    <div class="hero-eyebrow">Paper Zero Pipeline</div>
+    <div class="hero-title">Fact. Inference. <em>Constraint.</em></div>
+    <p class="hero-desc">Separates what is known from what is assumed. Runs your input through the ORR loop. Checks against the Campbell research corpus. Documents read in memory — never stored.</p>
+    <div class="hero-pills">
+      <span class="pill pill-r">ORR Framework</span>
+      <span class="pill pill-g">48 Observables</span>
+      <span class="pill pill-b">Paper Zero</span>
+      <span class="pill pill-r">Drift Resistant</span>
+      <span class="pill pill-g">No Storage</span>
+    </div>
+  </div>
 
-<button onclick="ask()">Run Analysis</button>
+  <div class="form-section">
+    <div class="form-label">Your Question</div>
+    <textarea id="question" rows="4" placeholder="Ask a question — the Pipeline extracts only what the evidence supports.&#10;&#10;Example: What facts exist about Titan A17?"></textarea>
+  </div>
 
-<div id="answer"></div>
+  <div class="form-section">
+    <div class="form-label">Article or Document (optional)</div>
+    <textarea id="article" rows="8" placeholder="Paste article text here for analysis...&#10;&#10;The Pipeline will extract facts, detect drift, and run ORR analysis against the Campbell corpus."></textarea>
+  </div>
+
+  <button class="run-btn" onclick="ask()">
+    ▶ &nbsp; Run Analysis
+  </button>
+
+  <div id="answer-wrap">
+    <div class="answer-hdr">
+      <div class="answer-dot"></div>
+      <div class="answer-label">ORR Analysis Output</div>
+      <span class="answer-ts" id="ts"></span>
+    </div>
+    <div id="answer"></div>
+  </div>
+
+</div>
+
+<footer>
+  <span class="footer-logo">PAPER ZERO PIPELINE — PZP</span>
+  <span class="footer-name">Matthew James Campbell · Youngstown, Ohio · ORCID 0009-0002-2263-4672</span>
+  <span class="footer-stack">48 Observables · Paper Zero · ORR Framework · The Sovereign Archive</span>
+</footer>
 
 <script>
-async function ask(){
+async function ask() {
+  const q       = document.getElementById("question").value;
+  const article = document.getElementById("article").value;
 
-    const q = document.getElementById("question").value;
-    const article = document.getElementById("article").value;
+  const wrap   = document.getElementById("answer-wrap");
+  const ansDiv = document.getElementById("answer");
 
-    document.getElementById("answer").innerText = "Running analysis...";
+  document.getElementById("ts").textContent = new Date().toLocaleTimeString();
+  wrap.style.display = "block";
+  ansDiv.innerHTML = `
+    <div class="loading-box">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Running Analysis...</div>
+    </div>`;
 
-    try{
-        const res = await fetch("/ask",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({
-                question:q,
-                article:article
-            })
-        });
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, article: article })
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        // Display clean output
-        if(data.analysis){
-            document.getElementById("answer").innerText = data.analysis;
-        } else {
-            document.getElementById("answer").innerText =
-                JSON.stringify(data,null,2);
-        }
-
-    }catch(err){
-        document.getElementById("answer").innerText =
-            "Error contacting server.";
+    if (data.analysis) {
+      ansDiv.innerHTML = `<div class="answer-box">${esc(data.analysis)}</div>`;
+    } else {
+      ansDiv.innerHTML = `<div class="answer-box">${esc(JSON.stringify(data, null, 2))}</div>`;
     }
+
+  } catch (err) {
+    ansDiv.innerHTML = `<div class="answer-box" style="color:var(--red);">⚠ Error contacting server.\n\n${esc(err.message)}</div>`;
+  }
 }
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') ask();
+});
 </script>
 
 </body>
