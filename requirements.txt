@@ -6,4 +6,4 @@ gunicorn
 openai
 pdfplumber
 python-docx
-numpy
+
