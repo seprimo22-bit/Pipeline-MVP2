@@ -3,27 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PZP — Paper Zero Pipeline</title>
-<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<title>Paper Zero Pipeline — PZP</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Nunito:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --black: #0a0a0c;
-    --surface: #111116;
-    --surface2: #18181f;
-    --border: #2a2a35;
+    --black: #09090b;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a38;
     --red: #c0272d;
-    --red-glow: rgba(192,39,45,0.08);
+    --red2: #a01f24;
     --gold: #c9a84c;
     --navy: #1a2a5e;
     --cream: #f0e8d0;
     --text: #e8e4d8;
     --muted: #6b6a72;
     --green: #4af0a0;
-    --amber: #f0a04a;
-    --blue: #6ab0f0;
-    --fraktur: 'UnifrakturMaguntia', serif;
+    --font: 'Nunito', sans-serif;
     --cinzel: 'Cinzel', serif;
-    --crimson: 'Crimson Pro', serif;
     --mono: 'Share Tech Mono', monospace;
   }
 
@@ -32,221 +29,408 @@
   body {
     background: var(--black);
     color: var(--text);
-    font-family: var(--crimson);
+    font-family: var(--font);
     min-height: 100vh;
     background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(192,39,45,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 100%, rgba(26,42,94,0.06) 0%, transparent 60%);
+      radial-gradient(ellipse at 15% 0%, rgba(192,39,45,0.05) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 100%, rgba(26,42,94,0.07) 0%, transparent 55%);
   }
 
-  /* HEADER */
+  /* ── HEADER ── */
   header {
+    background: #0d0d14;
     border-bottom: 1px solid var(--border);
-    background: #0d0d12;
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 4px 40px rgba(0,0,0,0.6);
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.5);
   }
-  .header-inner {
-    max-width: 900px; margin: 0 auto;
-    padding: 14px 24px;
-    display: flex; align-items: center; gap: 16px;
+
+  .hdr {
+    max-width: 860px; margin: 0 auto;
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
   }
-  .logo-ring {
-    width: 48px; height: 48px; border-radius: 50%;
+
+  .logo {
+    width: 44px; height: 44px;
+    border-radius: 50%;
     border: 3px solid var(--red);
     background: var(--cream);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 16px rgba(192,39,45,0.3);
     flex-shrink: 0;
+    box-shadow: 0 0 14px rgba(192,39,45,0.35);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--navy);
+    letter-spacing: .05em;
   }
-  .logo-pzp { font-family: var(--fraktur); font-size: 17px; color: var(--navy); line-height: 1; }
-  .header-titles { flex: 1; }
-  .header-name { font-family: var(--cinzel); font-size: 13px; font-weight: 900; letter-spacing: .16em; color: var(--text); }
-  .header-sub { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .1em; margin-top: 2px; }
-  .ver { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--border); padding: 3px 8px; border-radius: 3px; }
 
-  /* WRAP */
-  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px 60px; }
+  .hdr-text { flex: 1; }
 
-  /* HERO */
+  .hdr-name {
+    font-family: var(--cinzel);
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    color: var(--text);
+  }
+
+  .hdr-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--gold);
+    letter-spacing: .1em;
+    margin-top: 1px;
+  }
+
+  .hdr-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  /* ── WRAP ── */
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  /* ── HERO ── */
   .hero {
-    text-align: center; margin-bottom: 36px;
+    text-align: center;
     padding: 36px 20px 28px;
-    border: 1px solid var(--border); border-radius: 12px;
     background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
   }
-  .hero-ring {
-    width: 96px; height: 96px; border-radius: 50%;
-    border: 5px solid var(--red); background: var(--cream);
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 360px; height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(192,39,45,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-logo {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    border: 5px solid var(--red);
+    background: var(--cream);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 40px rgba(192,39,45,0.2);
-    margin: 0 auto 18px;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 36px rgba(192,39,45,0.22), 0 0 0 10px rgba(192,39,45,0.05);
+    font-family: var(--cinzel);
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--navy);
+    letter-spacing: .06em;
     position: relative;
   }
-  .hero-ring::before {
-    content: ''; position: absolute; inset: 5px;
-    border-radius: 50%; border: 1px solid rgba(201,168,76,0.4);
+
+  .hero-logo::before {
+    content: '';
+    position: absolute; inset: 4px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.35);
   }
-  .hero-pzp { font-family: var(--fraktur); font-size: 38px; color: var(--navy); line-height: 1; }
-  .hero-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--gold); text-transform: uppercase; margin-bottom: 6px; }
-  .hero-title { font-family: var(--cinzel); font-size: 20px; font-weight: 900; color: var(--text); margin-bottom: 10px; }
-  .hero-title span { color: var(--red); }
-  .hero-desc { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 480px; margin: 0 auto 16px; font-style: italic; }
-  .hero-tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-  .htag { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 10px; border-radius: 2px; border: 1px solid; }
-  .htag.r { color: var(--red); border-color: rgba(192,39,45,.4); background: rgba(192,39,45,.06); }
-  .htag.g { color: var(--gold); border-color: rgba(201,168,76,.4); background: rgba(201,168,76,.06); }
-  .htag.b { color: var(--blue); border-color: rgba(106,176,240,.3); background: rgba(106,176,240,.05); }
 
-  /* INPUTS */
-  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  @media(max-width:620px){ .input-grid { grid-template-columns: 1fr; } }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
 
-  .field { display: flex; flex-direction: column; gap: 8px; }
-  .field-label {
-    font-family: var(--mono); font-size: 9px; letter-spacing: .14em;
-    text-transform: uppercase; color: var(--gold);
+  .hero-title {
+    font-family: var(--cinzel);
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: .04em;
+  }
+
+  .hero-title em { color: var(--red); font-style: normal; }
+
+  .hero-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 460px;
+    margin: 0 auto 18px;
+  }
+
+  .hero-pills {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .pill-r { color: var(--red); border-color: rgba(192,39,45,.4); background: rgba(192,39,45,.06); }
+  .pill-g { color: var(--gold); border-color: rgba(201,168,76,.35); background: rgba(201,168,76,.06); }
+  .pill-b { color: #7ab8f5; border-color: rgba(122,184,245,.3); background: rgba(122,184,245,.05); }
+
+  /* ── FORM ── */
+  .form-section { margin-bottom: 14px; }
+
+  .form-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
     display: flex; align-items: center; gap: 8px;
   }
-  .field-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+  .form-label::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
 
   textarea {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 6px; padding: 14px; color: var(--text);
-    font-family: var(--crimson); font-size: 14px; line-height: 1.6;
-    resize: vertical; min-height: 140px; outline: none;
-    transition: border-color .2s, box-shadow .2s; width: 100%;
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
   }
-  textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(192,39,45,0.08); }
-  textarea::placeholder { color: var(--muted); font-style: italic; font-size: 13px; }
 
-  /* OBSERVABLES */
-  .obs-section { margin-bottom: 20px; }
-  .obs-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-  .obs-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip {
-    font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
-    padding: 5px 12px; border-radius: 2px; border: 1px solid var(--border);
-    background: var(--surface2); color: var(--muted); cursor: pointer; transition: all .15s;
+  textarea:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(192,39,45,0.09);
   }
-  .chip:hover { border-color: var(--gold); color: var(--gold); }
-  .chip.active { border-color: var(--red); color: var(--red); background: var(--red-glow); }
 
-  /* RUN BUTTON */
-  .runbtn {
-    width: 100%; padding: 16px; background: var(--red); color: white;
-    border: none; border-radius: 6px; font-family: var(--cinzel);
-    font-size: 14px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase;
-    cursor: pointer; transition: all .2s; margin-bottom: 36px;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    box-shadow: 0 4px 20px rgba(192,39,45,0.3);
+  textarea::placeholder {
+    color: var(--muted);
+    font-size: 14px;
   }
-  .runbtn:hover { background: #d42d34; box-shadow: 0 6px 30px rgba(192,39,45,0.45); transform: translateY(-1px); }
 
-  /* ANSWER */
+  /* ── RUN BUTTON ── */
+  .run-btn {
+    width: 100%;
+    padding: 17px;
+    margin: 20px 0 32px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--cinzel);
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 22px rgba(192,39,45,0.35);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+
+  .run-btn:hover {
+    background: var(--red2);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 30px rgba(192,39,45,0.45);
+  }
+
+  .run-btn:active { transform: translateY(0); }
+
+  /* ── ANSWER ── */
   #answer-wrap { display: none; }
 
   .answer-hdr {
     display: flex; align-items: center; gap: 10px;
-    margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
   }
-  .answer-title { font-family: var(--cinzel); font-size: 10px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
-  .answer-ts { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  .answer-label {
+    font-family: var(--cinzel);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .answer-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .answer-ts {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
 
   .answer-box {
-    background: var(--surface); border: 1px solid var(--border);
-    border-top: 2px solid var(--red); border-radius: 8px;
-    padding: 24px; white-space: pre-wrap;
-    font-family: var(--mono); font-size: 13px; line-height: 1.8;
-    color: #c8cad4; animation: fadeUp .3s ease both;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--red);
+    border-radius: 10px;
+    padding: 24px;
+    white-space: pre-wrap;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.85;
+    color: #c8cad4;
+    animation: fadeUp .3s ease both;
   }
 
-  /* Loading state */
+  /* ── LOADING ── */
   .loading-box {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 40px;
-    text-align: center; animation: fadeUp .3s ease both;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 48px 20px;
+    text-align: center;
+    animation: fadeUp .25s ease both;
   }
+
   .loading-ring {
-    width: 40px; height: 40px; border-radius: 50%;
-    border: 3px solid var(--border); border-top-color: var(--red);
-    animation: rot .7s linear infinite; margin: 0 auto 16px;
+    width: 42px; height: 42px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 16px;
   }
-  .loading-txt { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .1em; }
 
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes rot { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
 
-  /* FOOTER */
-  footer { border-top: 1px solid var(--border); padding: 24px; text-align: center; margin-top: 60px; }
-  .footer-pzp { font-family: var(--fraktur); font-size: 26px; color: var(--red); display: block; margin-bottom: 4px; }
-  .footer-name { font-family: var(--cinzel); font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
-  .footer-48 { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: .1em; margin-top: 4px; display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 20px;
+    text-align: center;
+    margin-top: 60px;
+  }
+
+  .footer-logo {
+    font-family: var(--cinzel);
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: .2em;
+    color: var(--red);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .footer-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .08em;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .footer-stack {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--gold);
+    letter-spacing: .1em;
+    opacity: 0.7;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-inner">
-    <div class="logo-ring"><span class="logo-pzp">PZP</span></div>
-    <div class="header-titles">
-      <div class="header-name">Paper Zero Pipeline</div>
-      <div class="header-sub">48 Observables · ORR Framework · Campbell Corpus</div>
+  <div class="hdr">
+    <div class="logo">PZP</div>
+    <div class="hdr-text">
+      <div class="hdr-name">Paper Zero Pipeline</div>
+      <div class="hdr-sub">48 Observables · ORR Framework · Campbell Corpus</div>
     </div>
-    <span class="ver">v2.1</span>
+    <span class="hdr-badge">v2.1</span>
   </div>
 </header>
 
 <div class="wrap">
 
   <div class="hero">
-    <div class="hero-ring"><span class="hero-pzp">PZP</span></div>
+    <div class="hero-logo">PZP</div>
     <div class="hero-eyebrow">Paper Zero Pipeline</div>
-    <div class="hero-title">Fact. Inference. <span>Constraint.</span></div>
-    <p class="hero-desc">Separates what is known from what is assumed. Runs your input through the ORR loop. Documents read in memory — never stored.</p>
-    <div class="hero-tags">
-      <span class="htag r">ORR Framework</span>
-      <span class="htag g">48 Observables</span>
-      <span class="htag b">Paper Zero</span>
-      <span class="htag r">No Storage</span>
-      <span class="htag g">Drift Resistant</span>
+    <div class="hero-title">Fact. Inference. <em>Constraint.</em></div>
+    <p class="hero-desc">Separates what is known from what is assumed. Runs your input through the ORR loop. Checks against the Campbell research corpus. Documents read in memory — never stored.</p>
+    <div class="hero-pills">
+      <span class="pill pill-r">ORR Framework</span>
+      <span class="pill pill-g">48 Observables</span>
+      <span class="pill pill-b">Paper Zero</span>
+      <span class="pill pill-r">Drift Resistant</span>
+      <span class="pill pill-g">No Storage</span>
     </div>
   </div>
 
-  <div class="input-grid">
-    <div class="field">
-      <label class="field-label">Your Question</label>
-      <textarea id="question" rows="5" placeholder="What facts exist about Titan A17?&#10;&#10;Ask anything — the Pipeline extracts only what the evidence supports."></textarea>
-    </div>
-    <div class="field">
-      <label class="field-label">Article or Document</label>
-      <textarea id="article" rows="5" placeholder="Paste article text here for analysis...&#10;&#10;Optional — run without an article for general fact extraction."></textarea>
-    </div>
+  <div class="form-section">
+    <div class="form-label">Your Question</div>
+    <textarea id="question" rows="4" placeholder="Ask a question — the Pipeline extracts only what the evidence supports.&#10;&#10;Example: What facts exist about Titan A17?"></textarea>
   </div>
 
-  <div class="obs-section">
-    <div class="obs-label">48 Observables — tap to add context to your question</div>
-    <div class="obs-chips">
-      <span class="chip" data-obs="Posture">Posture</span>
-      <span class="chip" data-obs="Tone">Tone</span>
-      <span class="chip" data-obs="Timing">Timing</span>
-      <span class="chip" data-obs="Pressure">Pressure</span>
-      <span class="chip" data-obs="Pattern">Pattern</span>
-      <span class="chip" data-obs="Hierarchy">Hierarchy</span>
-      <span class="chip" data-obs="Intent">Intent</span>
-      <span class="chip" data-obs="Leverage">Leverage</span>
-      <span class="chip" data-obs="Concealment">Concealment</span>
-      <span class="chip" data-obs="Reputation">Reputation</span>
-      <span class="chip" data-obs="Influence">Influence</span>
-      <span class="chip" data-obs="Alignment">Alignment</span>
-    </div>
+  <div class="form-section">
+    <div class="form-label">Article or Document (optional)</div>
+    <textarea id="article" rows="8" placeholder="Paste article text here for analysis...&#10;&#10;The Pipeline will extract facts, detect drift, and run ORR analysis against the Campbell corpus."></textarea>
   </div>
 
-  <button class="runbtn" onclick="ask()">▶ &nbsp; Run ORR Analysis</button>
+  <button class="run-btn" onclick="ask()">
+    ▶ &nbsp; Run Analysis
+  </button>
 
   <div id="answer-wrap">
     <div class="answer-hdr">
-      <div class="answer-title">ORR Analysis Output</div>
+      <div class="answer-dot"></div>
+      <div class="answer-label">ORR Analysis Output</div>
       <span class="answer-ts" id="ts"></span>
     </div>
     <div id="answer"></div>
@@ -255,66 +439,58 @@
 </div>
 
 <footer>
-  <span class="footer-pzp">PZP</span>
+  <span class="footer-logo">PAPER ZERO PIPELINE — PZP</span>
   <span class="footer-name">Matthew James Campbell · Youngstown, Ohio · ORCID 0009-0002-2263-4672</span>
-  <span class="footer-48">48 Observables · Paper Zero · ORR Framework · The Sovereign Archive</span>
+  <span class="footer-stack">48 Observables · Paper Zero · ORR Framework · The Sovereign Archive</span>
 </footer>
 
 <script>
-  // Observable chips
-  document.querySelectorAll('.chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const obs = chip.dataset.obs;
-      const q = document.getElementById('question');
-      chip.classList.toggle('active');
-      const tag = `[${obs}]`;
-      if (chip.classList.contains('active')) {
-        if (!q.value.includes(tag)) q.value = q.value.trim() ? `${q.value.trim()} ${tag}` : tag;
-      } else {
-        q.value = q.value.replace(tag, '').trim();
-      }
+async function ask() {
+  const q       = document.getElementById("question").value;
+  const article = document.getElementById("article").value;
+
+  const wrap   = document.getElementById("answer-wrap");
+  const ansDiv = document.getElementById("answer");
+
+  document.getElementById("ts").textContent = new Date().toLocaleTimeString();
+  wrap.style.display = "block";
+  ansDiv.innerHTML = `
+    <div class="loading-box">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Running Analysis...</div>
+    </div>`;
+
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, article: article })
     });
-  });
 
-  async function ask() {
-    const q = document.getElementById("question").value;
-    const article = document.getElementById("article").value;
+    const data = await res.json();
 
-    // Show loading
-    const wrap = document.getElementById("answer-wrap");
-    const ansDiv = document.getElementById("answer");
-    document.getElementById("ts").textContent = new Date().toLocaleTimeString();
-    wrap.style.display = "block";
-    ansDiv.innerHTML = `<div class="loading-box"><div class="loading-ring"></div><div class="loading-txt">Running ORR Analysis...</div></div>`;
-
-    try {
-      const res = await fetch("/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, article: article })
-      });
-
-      const data = await res.json();
-
-      if (data.analysis) {
-        ansDiv.innerHTML = `<div class="answer-box">${escHtml(data.analysis)}</div>`;
-      } else {
-        ansDiv.innerHTML = `<div class="answer-box">${escHtml(JSON.stringify(data, null, 2))}</div>`;
-      }
-
-    } catch (err) {
-      ansDiv.innerHTML = `<div class="answer-box" style="color:var(--red);">⚠ Error contacting server.\n\n${escHtml(err.message)}</div>`;
+    if (data.analysis) {
+      ansDiv.innerHTML = `<div class="answer-box">${esc(data.analysis)}</div>`;
+    } else {
+      ansDiv.innerHTML = `<div class="answer-box">${esc(JSON.stringify(data, null, 2))}</div>`;
     }
-  }
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  } catch (err) {
+    ansDiv.innerHTML = `<div class="answer-box" style="color:var(--red);">⚠ Error contacting server.\n\n${esc(err.message)}</div>`;
   }
+}
 
-  // Ctrl+Enter to run
-  document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') ask();
-  });
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') ask();
+});
 </script>
+
 </body>
 </html>
