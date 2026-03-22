@@ -1,88 +1,259 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Campbell Cognitive Pipeline</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: auto;
-            padding: 30px;
-            background: #f4f6f8;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campbell Cognitive Pipeline</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        h1 {
-            text-align: center;
-        }
+  body {
+    font-family: Arial, sans-serif;
+    background: #1a1a2e;
+    color: #f0f0f0;
+    min-height: 100vh;
+    padding: 0 0 80px 0;
+  }
 
-        textarea {
-            width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            margin-bottom: 15px;
-        }
+  /* TITLE AREA */
+  .title-area {
+    padding: 28px 20px 0;
+    max-width: 700px;
+    margin: 0 auto;
+  }
 
-        button {
-            padding: 12px 20px;
-            background: #2e7dff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+  .title-area h1 {
+    font-size: 24px;
+    font-weight: 900;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
 
-        button:hover {
-            background: #1b5edb;
-        }
+  .title-area .subtitle {
+    font-size: 13px;
+    color: #888;
+  }
 
-        #answer {
-            margin-top: 25px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            white-space: pre-wrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-    </style>
+  /* MAIN CONTENT */
+  .content {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* LABELS */
+  .field-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f0f0f0;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  /* INPUTS */
+  textarea {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    color: #111;
+    border: none;
+    border-radius: 10px;
+    resize: vertical;
+    margin-bottom: 20px;
+    outline: none;
+  }
+
+  textarea:focus {
+    box-shadow: 0 0 0 3px rgba(192,39,45,0.4);
+  }
+
+  /* TAPP QUESTION CHIPS */
+  .chips-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #aaa;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .chip {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #444;
+    border-radius: 20px;
+    color: #ccc;
+    font-size: 13px;
+    font-family: Arial, sans-serif;
+    cursor: default;
+  }
+
+  /* RUN BUTTON */
+  .run-btn {
+    width: 100%;
+    padding: 18px;
+    background: #c0272d;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 900;
+    font-family: Arial, sans-serif;
+    letter-spacing: .08em;
+    cursor: pointer;
+    margin-bottom: 28px;
+  }
+
+  .run-btn:hover {
+    background: #a01f24;
+  }
+
+  /* OUTPUT AREA */
+  #answer {
+    background: #f5f5f5;
+    color: #111;
+    border-radius: 10px;
+    padding: 20px;
+    white-space: pre-wrap;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    line-height: 1.7;
+    display: none;
+  }
+
+  #answer.visible {
+    display: block;
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #0d0d14;
+    border-top: 1px solid #2a2a38;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0 14px;
+    z-index: 50;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #888;
+    font-size: 11px;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0 12px;
+  }
+
+  .nav-item .nav-icon { font-size: 18px; }
+  .nav-item.active { color: #f0f0f0; }
+</style>
 </head>
 <body>
-    <h1>Campbell Cognitive Pipeline</h1>
 
-    <h3>Ask a Question (Facts Only)</h3>
-    <textarea id="question" rows="4" placeholder="Example: What facts exist about Titan A17?"></textarea>
+<div class="title-area">
+  <h1>Campbell Cognitive Pipeline</h1>
+  <div class="subtitle">ORR Live &bull; Version 1.0</div>
+</div>
 
-    <h3>Optional Article Analyzer</h3>
-    <textarea id="article" rows="10" placeholder="Paste article text here if you want analysis..."></textarea>
+<div class="content">
 
-    <button onclick="ask()">Run Analysis</button>
+  <label class="field-label">Ask a Question</label>
+  <textarea id="question" rows="4"
+    placeholder="Example: What facts exist about Titan A17?"></textarea>
 
-    <div id="answer"></div>
+  <label class="field-label">Paste Article</label>
+  <textarea id="article" rows="6"
+    placeholder="Paste article text here if you want analysis..."></textarea>
 
-    <script>
-        async function ask() {
-            const q = document.getElementById("question").value;
-            const article = document.getElementById("article").value;
+  <span class="chips-label">Tapp Question</span>
+  <div class="chips">
+    <span class="chip">Posture</span>
+    <span class="chip">Tone</span>
+    <span class="chip">Timing</span>
+    <span class="chip">Pressure</span>
+    <span class="chip">Pattern</span>
+    <span class="chip">Hierarchy</span>
+  </div>
 
-            document.getElementById("answer").innerText = "Running analysis...";
+  <button class="run-btn" onclick="ask()">RUN ORR ANALYSIS</button>
 
-            try {
-                const res = await fetch("/ask", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ question: q, article: article })
-                });
+  <div id="answer"></div>
 
-                const data = await res.json();
+</div>
 
-                if (data.analysis) {
-                    document.getElementById("answer").innerText = data.analysis;
-                } else {
-                    document.getElementById("answer").innerText = JSON.stringify(data, null, 2);
-                }
-            } catch (err) {
-                document.getElementById("answer").innerText = "Error contacting server.";
-            }
-        }
-    </script>
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-item">
+    <span class="nav-icon">⬆</span>
+    Save to Ledger
+  </button>
+  <button class="nav-item">
+    <span class="nav-icon">↗</span>
+    Share Report
+  </button>
+  <button class="nav-item active" onclick="ask()">
+    <span class="nav-icon">⏱</span>
+    Run Again
+  </button>
+  <button class="nav-item" onclick="clearAll()">
+    <span class="nav-icon">✕</span>
+    Clear
+  </button>
+</div>
+
+<script>
+async function ask() {
+  const q = document.getElementById("question").value;
+  const article = document.getElementById("article").value;
+
+  const ansDiv = document.getElementById("answer");
+  ansDiv.classList.add("visible");
+  ansDiv.innerText = "Running analysis...";
+
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, article: article })
+    });
+
+    const data = await res.json();
+
+    if (data.analysis) {
+      ansDiv.innerText = data.analysis;
+    } else {
+      ansDiv.innerText = JSON.stringify(data, null, 2);
+    }
+
+  } catch (err) {
+    ansDiv.innerText = "Error contacting server.";
+  }
+}
+
+function clearAll() {
+  document.getElementById("question").value = "";
+  document.getElementById("article").value = "";
+  const ansDiv = document.getElementById("answer");
+  ansDiv.innerText = "";
+  ansDiv.classList.remove("visible");
+}
+</script>
+
 </body>
 </html>
