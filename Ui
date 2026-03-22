@@ -1,100 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Campbell Cognitive Pipeline</title>
-
 <style>
-body{
-    font-family: Arial, sans-serif;
-    max-width:900px;
-    margin:auto;
-    padding:30px;
-    background:#f4f6f8;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: #1a1a2e;
+  color: #f0f0f0;
+  min-height: 100vh;
+  padding: 28px 20px 40px;
+  max-width: 900px;
+  margin: auto;
 }
 
-h1{
-    text-align:center;
+h1 {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 4px;
 }
 
-textarea{
-    width:100%;
-    padding:12px;
-    font-size:15px;
-    margin-bottom:15px;
+.subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 28px;
 }
 
-button{
-    padding:12px 20px;
-    background:#2e7dff;
-    color:white;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
+h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ccc;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 8px;
 }
 
-button:hover{
-    background:#1b5edb;
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  resize: vertical;
+  margin-bottom: 18px;
+  outline: none;
 }
 
-#answer{
-    margin-top:25px;
-    padding:20px;
-    background:white;
-    border-radius:8px;
-    white-space:pre-wrap;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+textarea:focus {
+  box-shadow: 0 0 0 3px rgba(192,39,45,0.4);
+}
+
+button {
+  padding: 14px 28px;
+  background: #c0272d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 900;
+  font-family: Arial, sans-serif;
+  letter-spacing: .06em;
+  cursor: pointer;
+  text-transform: uppercase;
+  display: block;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+button:hover { background: #a01f24; }
+
+#answer {
+  margin-top: 8px;
+  padding: 20px;
+  background: #f5f5f5;
+  color: #111;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  font-size: 14px;
+  line-height: 1.7;
+  display: none;
 }
 </style>
 </head>
-
 <body>
 
 <h1>Campbell Cognitive Pipeline</h1>
+<div class="subtitle">ORR Live &bull; Version 1.0</div>
 
 <h3>Ask a Question (Facts Only)</h3>
 <textarea id="question" rows="4"
-placeholder="Example: What facts exist about Titan A17?"></textarea>
+  placeholder="Example: What facts exist about Titan A17?"></textarea>
 
 <h3>Optional Article Analyzer</h3>
 <textarea id="article" rows="10"
-placeholder="Paste article text here if you want analysis..."></textarea>
+  placeholder="Paste article text here if you want analysis..."></textarea>
 
 <button onclick="ask()">Run Analysis</button>
 
 <div id="answer"></div>
 
 <script>
-async function ask(){
+async function ask() {
+  const q = document.getElementById("question").value;
+  const article = document.getElementById("article").value;
+  const ansDiv = document.getElementById("answer");
 
-    const q = document.getElementById("question").value;
-    const article = document.getElementById("article").value;
+  ansDiv.style.display = "block";
+  ansDiv.innerText = "Running analysis...";
 
-    document.getElementById("answer").innerText = "Running analysis...";
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, article: article })
+    });
 
-    try{
-        const res = await fetch("/ask",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({
-                question:q,
-                article:article
-            })
-        });
+    const data = await res.json();
 
-        const data = await res.json();
-
-        // Display clean output
-        if(data.analysis){
-            document.getElementById("answer").innerText = data.analysis;
-        } else {
-            document.getElementById("answer").innerText =
-                JSON.stringify(data,null,2);
-        }
-
-    }catch(err){
-        document.getElementById("answer").innerText =
-            "Error contacting server.";
+    if (data.analysis) {
+      ansDiv.innerText = data.analysis;
+    } else {
+      ansDiv.innerText = JSON.stringify(data, null, 2);
     }
+
+  } catch (err) {
+    ansDiv.innerText = "Error contacting server.";
+  }
 }
 </script>
 
