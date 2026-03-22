@@ -3,255 +3,241 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Campbell Cognitive Pipeline</title>
+<title>Paper Zero Pipeline</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: Arial, sans-serif;
-    background: #1a1a2e;
-    color: #f0f0f0;
-    min-height: 100vh;
-    padding: 0 0 80px 0;
-  }
+body {
+  font-family: Arial, sans-serif;
+  background: #1a1a2e;
+  color: #f0f0f0;
+  min-height: 100vh;
+  padding: 24px 20px 40px;
+}
 
-  /* TITLE AREA */
-  .title-area {
-    padding: 28px 20px 0;
-    max-width: 700px;
-    margin: 0 auto;
-  }
+h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
 
-  .title-area h1 {
-    font-size: 24px;
-    font-weight: 900;
-    color: #ffffff;
-    margin-bottom: 4px;
-  }
+.subtitle {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 24px;
+}
 
-  .title-area .subtitle {
-    font-size: 13px;
-    color: #888;
-  }
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ccc;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
 
-  /* MAIN CONTENT */
-  .content {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 24px 20px;
-  }
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  resize: vertical;
+  margin-bottom: 16px;
+  outline: none;
+}
 
-  /* LABELS */
-  .field-label {
-    font-size: 15px;
-    font-weight: 700;
-    color: #f0f0f0;
-    margin-bottom: 8px;
-    display: block;
-  }
+textarea:focus {
+  box-shadow: 0 0 0 3px rgba(192,39,45,0.4);
+}
 
-  /* INPUTS */
-  textarea {
-    width: 100%;
-    padding: 14px;
-    font-size: 15px;
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
-    color: #111;
-    border: none;
-    border-radius: 10px;
-    resize: vertical;
-    margin-bottom: 20px;
-    outline: none;
-  }
+button {
+  width: 100%;
+  padding: 16px;
+  background: #c0272d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 900;
+  font-family: Arial, sans-serif;
+  letter-spacing: .08em;
+  cursor: pointer;
+  margin-bottom: 28px;
+  text-transform: uppercase;
+}
 
-  textarea:focus {
-    box-shadow: 0 0 0 3px rgba(192,39,45,0.4);
-  }
+button:hover { background: #a01f24; }
+button:disabled { background: #555; cursor: not-allowed; }
 
-  /* TAPP QUESTION CHIPS */
-  .chips-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #aaa;
-    margin-bottom: 10px;
-    display: block;
-  }
+/* OUTPUT CARDS */
+.results { display: none; }
 
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 24px;
-  }
+.card {
+  background: #f5f5f5;
+  color: #111;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
 
-  .chip {
-    padding: 6px 14px;
-    background: transparent;
-    border: 1px solid #444;
-    border-radius: 20px;
-    color: #ccc;
-    font-size: 13px;
-    font-family: Arial, sans-serif;
-    cursor: default;
-  }
+.card-title {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid;
+}
 
-  /* RUN BUTTON */
-  .run-btn {
-    width: 100%;
-    padding: 18px;
-    background: #c0272d;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 900;
-    font-family: Arial, sans-serif;
-    letter-spacing: .08em;
-    cursor: pointer;
-    margin-bottom: 28px;
-  }
+.card-title.green { color: #1a7a4a; border-color: #1a7a4a; }
+.card-title.blue  { color: #1a4a8a; border-color: #1a4a8a; }
+.card-title.red   { color: #c0272d; border-color: #c0272d; }
+.card-title.gray  { color: #555;    border-color: #ccc; }
 
-  .run-btn:hover {
-    background: #a01f24;
-  }
+.fact-item {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 6px 0;
+  border-bottom: 1px solid #e0e0e0;
+  color: #222;
+}
 
-  /* OUTPUT AREA */
-  #answer {
-    background: #f5f5f5;
-    color: #111;
-    border-radius: 10px;
-    padding: 20px;
-    white-space: pre-wrap;
-    font-size: 14px;
-    font-family: Arial, sans-serif;
-    line-height: 1.7;
-    display: none;
-  }
+.fact-item:last-child { border-bottom: none; }
 
-  #answer.visible {
-    display: block;
-  }
+.empty { font-size: 13px; color: #888; font-style: italic; }
 
-  /* BOTTOM NAV */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: #0d0d14;
-    border-top: 1px solid #2a2a38;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 0 14px;
-    z-index: 50;
-  }
+.rel-status {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+}
 
-  .nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    color: #888;
-    font-size: 11px;
-    font-family: Arial, sans-serif;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0 12px;
-  }
+.corpus-source {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c0272d;
+  margin-bottom: 2px;
+}
 
-  .nav-item .nav-icon { font-size: 18px; }
-  .nav-item.active { color: #f0f0f0; }
+.corpus-text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
 </style>
 </head>
 <body>
 
-<div class="title-area">
-  <h1>Campbell Cognitive Pipeline</h1>
-  <div class="subtitle">ORR Live &bull; Version 1.0</div>
-</div>
+<h1>Paper Zero Pipeline</h1>
+<div class="subtitle">ORR Framework &bull; 48 Observables &bull; Campbell Corpus</div>
 
-<div class="content">
+<label>Ask a Question</label>
+<textarea id="question" rows="4"
+  placeholder="What do you want to analyze?&#10;&#10;Example: What observable events occurred during the 1999 Izmit earthquake?"></textarea>
 
-  <label class="field-label">Ask a Question</label>
-  <textarea id="question" rows="4"
-    placeholder="Example: What facts exist about Titan A17?"></textarea>
+<label>Paste Article (optional)</label>
+<textarea id="article" rows="8"
+  placeholder="Paste article or document text here..."></textarea>
 
-  <label class="field-label">Paste Article</label>
-  <textarea id="article" rows="6"
-    placeholder="Paste article text here if you want analysis..."></textarea>
+<button id="btn" onclick="runAnalysis()">Run Analysis</button>
 
-  <span class="chips-label">Tapp Question</span>
-  <div class="chips">
-    <span class="chip">Posture</span>
-    <span class="chip">Tone</span>
-    <span class="chip">Timing</span>
-    <span class="chip">Pressure</span>
-    <span class="chip">Pattern</span>
-    <span class="chip">Hierarchy</span>
+<div class="results" id="results">
+
+  <div class="card">
+    <div class="card-title green">Observe — Facts From Input</div>
+    <div id="facts-from-input"></div>
   </div>
 
-  <button class="run-btn" onclick="ask()">RUN ORR ANALYSIS</button>
+  <div class="card">
+    <div class="card-title blue">Recognize — Facts About Input</div>
+    <div id="facts-about-input"></div>
+  </div>
 
-  <div id="answer"></div>
+  <div class="card">
+    <div class="card-title red">Respond — Relationship Status</div>
+    <div id="relationship-status" class="rel-status"></div>
+  </div>
 
-</div>
+  <div class="card">
+    <div class="card-title gray">Review — Corpus Matches</div>
+    <div id="corpus-matches"></div>
+  </div>
 
-<!-- BOTTOM NAV -->
-<div class="bottom-nav">
-  <button class="nav-item">
-    <span class="nav-icon">⬆</span>
-    Save to Ledger
-  </button>
-  <button class="nav-item">
-    <span class="nav-icon">↗</span>
-    Share Report
-  </button>
-  <button class="nav-item active" onclick="ask()">
-    <span class="nav-icon">⏱</span>
-    Run Again
-  </button>
-  <button class="nav-item" onclick="clearAll()">
-    <span class="nav-icon">✕</span>
-    Clear
-  </button>
 </div>
 
 <script>
-async function ask() {
-  const q = document.getElementById("question").value;
-  const article = document.getElementById("article").value;
+async function runAnalysis() {
+  const q = document.getElementById("question").value.trim();
+  const a = document.getElementById("article").value.trim();
+  const btn = document.getElementById("btn");
+  const results = document.getElementById("results");
 
-  const ansDiv = document.getElementById("answer");
-  ansDiv.classList.add("visible");
-  ansDiv.innerText = "Running analysis...";
+  btn.disabled = true;
+  btn.innerText = "Running...";
+  results.style.display = "none";
 
   try {
-    const res = await fetch("/ask", {
+    const res = await fetch("/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q, article: article })
+      body: JSON.stringify({ question: q, article: a })
     });
 
     const data = await res.json();
 
-    if (data.analysis) {
-      ansDiv.innerText = data.analysis;
-    } else {
-      ansDiv.innerText = JSON.stringify(data, null, 2);
-    }
+    // FACTS FROM INPUT
+    const ffi = document.getElementById("facts-from-input");
+    const factsFrom = data.facts_from_input || [];
+    ffi.innerHTML = factsFrom.length
+      ? factsFrom.map(f => `<div class="fact-item">• ${esc(f)}</div>`).join("")
+      : `<div class="empty">No facts extracted from input.</div>`;
+
+    // FACTS ABOUT INPUT
+    const fai = document.getElementById("facts-about-input");
+    const factsAbout = data.facts_about_input || [];
+    fai.innerHTML = factsAbout.length
+      ? factsAbout.map(f => `<div class="fact-item">• ${esc(f)}</div>`).join("")
+      : `<div class="empty">No background facts generated.</div>`;
+
+    // RELATIONSHIP STATUS
+    document.getElementById("relationship-status").innerText =
+      data.relationship_status || "No relationship determined.";
+
+    // CORPUS MATCHES
+    const cm = document.getElementById("corpus-matches");
+    const matches = data.corpus_matches || [];
+    cm.innerHTML = matches.length
+      ? matches.map(m => `
+          <div class="corpus-source">${esc(m.source)}</div>
+          <div class="corpus-text">${esc(m.match)}</div>
+        `).join("")
+      : `<div class="empty">No direct corpus match found.</div>`;
+
+    results.style.display = "block";
 
   } catch (err) {
-    ansDiv.innerText = "Error contacting server.";
+    document.getElementById("facts-from-input").innerHTML =
+      `<div class="empty">Error: ${esc(err.message)}</div>`;
+    results.style.display = "block";
   }
+
+  btn.disabled = false;
+  btn.innerText = "Run Analysis";
 }
 
-function clearAll() {
-  document.getElementById("question").value = "";
-  document.getElementById("article").value = "";
-  const ansDiv = document.getElementById("answer");
-  ansDiv.innerText = "";
-  ansDiv.classList.remove("visible");
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
 }
 </script>
 
