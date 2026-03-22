@@ -1,84 +1,88 @@
-
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Campbell Cognitive Pipeline</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: system-ui, sans-serif; }
-    .chip { transition: all 0.2s; }
-    .chip.active { background-color: #22c55e; color: white; }
-  </style>
+    <title>Campbell Cognitive Pipeline</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 30px;
+            background: #f4f6f8;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #2e7dff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1b5edb;
+        }
+
+        #answer {
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+    </style>
 </head>
-<body class="bg-zinc-950 text-white min-h-screen flex flex-col">
+<body>
+    <h1>Campbell Cognitive Pipeline</h1>
 
-  <header class="bg-black px-6 py-4 flex items-center justify-between border-b border-zinc-800">
-    <div>
-      <h1 class="text-2xl font-bold">Campbell Cognitive Pipeline</h1>
-      <p class="text-green-500 text-sm">ORR Live • Version 1.0</p>
-    </div>
-  </header>
+    <h3>Ask a Question (Facts Only)</h3>
+    <textarea id="question" rows="4" placeholder="Example: What facts exist about Titan A17?"></textarea>
 
-  <div class="flex-1 p-6 space-y-8 overflow-auto">
-    <!-- Ask a Question -->
-    <div>
-      <label class="block text-lg font-medium mb-2">Ask a Question</label>
-      <textarea id="Q" rows="3" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-5 text-lg placeholder:text-zinc-500 focus:outline-none focus:border-green-500" placeholder="What do you want to know? e.g. What is constraint triangulation theory?"></textarea>
-    </div>
+    <h3>Optional Article Analyzer</h3>
+    <textarea id="article" rows="10" placeholder="Paste article text here if you want analysis..."></textarea>
 
-    <!-- Paste Article or Document -->
-    <div>
-      <label class="block text-lg font-medium mb-2">Paste Article or Document</label>
-      <textarea id="A" rows="6" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-5 text-lg placeholder:text-zinc-500 focus:outline-none focus:border-green-500" placeholder="Paste text here..."></textarea>
-    </div>
+    <button onclick="ask()">Run Analysis</button>
 
-    <!-- Quick Observables -->
-    <div>
-      <label class="block text-sm text-zinc-400 mb-3">Tap any Observable</label>
-      <div class="flex flex-wrap gap-2">
-        <button onclick="toggleChip(this)" class="chip px-4 py-2 bg-zinc-800 rounded-full text-sm">Posture</button>
-        <button onclick="toggleChip(this)" class="chip px-4 py-2 bg-zinc-800 rounded-full text-sm">Tone</button>
-        <button onclick="toggleChip(this)" class="chip px-4 py-2 bg-zinc-800 rounded-full text-sm">Timing</button>
-        <button onclick="toggleChip(this)" class="chip px-4 py-2 bg-zinc-800 rounded-full text-sm">Pressure</button>
-        <button onclick="toggleChip(this)" class="chip px-4 py-2 bg-zinc-800 rounded-full text-sm">Pattern</button>
-        <button onclick="toggleChip(this)" class="chip px-4 py-2 bg-zinc-800 rounded-full text-sm">Hierarchy</button>
-      </div>
-    </div>
+    <div id="answer"></div>
 
-    <!-- Big Red Button (keeps your exact /analyze call) -->
-    <button onclick="go()" id="RB" class="w-full bg-red-600 hover:bg-red-700 text-white text-2xl font-bold py-6 rounded-3xl transition-all active:scale-95">
-      RUN ORR ANALYSIS
-    </button>
+    <script>
+        async function ask() {
+            const q = document.getElementById("question").value;
+            const article = document.getElementById("article").value;
 
-    <!-- Your existing results area (now styled clean) -->
-    <div id="results" class="hidden bg-zinc-900 border border-zinc-700 rounded-3xl p-6 space-y-8">
-      <!-- Your render() function will fill this exactly as before -->
-    </div>
-  </div>
+            document.getElementById("answer").innerText = "Running analysis...";
 
-  <!-- Bottom Nav -->
-  <nav class="bg-black border-t border-zinc-800 p-4 flex justify-around text-xs">
-    <button onclick="alert('Saved to Ledger')" class="flex flex-col items-center text-zinc-400">📥 Save</button>
-    <button onclick="alert('Report shared')" class="flex flex-col items-center text-zinc-400">🔗 Share</button>
-    <button onclick="go()" class="flex flex-col items-center text-green-500">🔄 Run Again</button>
-    <button onclick="clearAll()" class="flex flex-col items-center text-zinc-400">🗑 Clear</button>
-  </nav>
+            try {
+                const res = await fetch("/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: q, article: article })
+                });
 
-  <script>
-    // === YOUR ORIGINAL JS (kept 100% intact) ===
-    let uText = null, uName = null;
-    // ... (all your drag/drop, handleFile, processFile, clearFile, go(), render(), x() functions stay exactly the same - I kept them below for completeness) ...
+                const data = await res.json();
 
-    function toggleChip(el) { el.classList.toggle('active'); }
-    function clearAll() {
-      document.getElementById('Q').value = '';
-      document.getElementById('A').value = '';
-      document.getElementById('results').classList.add('hidden');
-    }
-
-    // Paste your full original <script> content here if you want - but since you already have it working, just keep the go() and render() calls as-is.
-  </script>
+                if (data.analysis) {
+                    document.getElementById("answer").innerText = data.analysis;
+                } else {
+                    document.getElementById("answer").innerText = JSON.stringify(data, null, 2);
+                }
+            } catch (err) {
+                document.getElementById("answer").innerText = "Error contacting server.";
+            }
+        }
+    </script>
 </body>
 </html>
